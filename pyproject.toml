@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+[project]
+name = "grizzlies"
+version = "0.0.1"
+authors = [
+   { name="Shashank Kambhammettu", email="skambh@umich.edu"},
+    {name="Kiran Bodipati", email="bodipati@umich.edu"},
+    {name="Shruti Jain", email="shrujain@umich.edu"},
+    {name="Jai Narayanan", email="jainara@umich.edu"}
+]
+description = "CSE 584 Final Project"
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/skambh/Grizzlies"

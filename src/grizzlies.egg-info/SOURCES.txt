@@ -1,7 +1,0 @@
-README.md
-setup.py
-src/grizzlies.egg-info/PKG-INFO
-src/grizzlies.egg-info/SOURCES.txt
-src/grizzlies.egg-info/dependency_links.txt
-src/grizzlies.egg-info/top_level.txt
-tests/test_basic.py

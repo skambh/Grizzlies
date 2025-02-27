@@ -1,10 +1,14 @@
 appnope @ file:///home/conda/feedstock_root/build_artifacts/appnope_1733332318622/work
 asttokens @ file:///home/conda/feedstock_root/build_artifacts/asttokens_1733250440834/work
+build==1.2.2.post1
 comm @ file:///home/conda/feedstock_root/build_artifacts/comm_1733502965406/work
 debugpy @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_6a37he2v_t/croot/debugpy_1736267437603/work
 decorator @ file:///home/conda/feedstock_root/build_artifacts/decorator_1740384970518/work
 exceptiongroup @ file:///home/conda/feedstock_root/build_artifacts/exceptiongroup_1733208806608/work
 executing @ file:///home/conda/feedstock_root/build_artifacts/executing_1733569351617/work
+flatten-json==0.1.14
+# Editable install with no version control (grizzlies==0.1.6)
+-e /Users/shash/anaconda3/envs/cse584/lib/python3.12/site-packages
 importlib_metadata @ file:///home/conda/feedstock_root/build_artifacts/importlib-metadata_1737420181517/work
 ipykernel @ file:///Users/runner/miniforge3/conda-bld/ipykernel_1719845458456/work
 ipython @ file:///home/conda/feedstock_root/build_artifacts/bld/rattler-build_ipython_1738421264/work
@@ -25,9 +29,11 @@ psutil @ file:///private/var/folders/k1/30mswbxs7r1g6zwn8y4fyt500000gp/T/abs_10o
 ptyprocess @ file:///home/conda/feedstock_root/build_artifacts/ptyprocess_1733302279685/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl#sha256=92c32ff62b5fd8cf325bec5ab90d7be3d2a8ca8c8a3813ff487a8d2002630d1f
 pure_eval @ file:///home/conda/feedstock_root/build_artifacts/pure_eval_1733569405015/work
 Pygments @ file:///home/conda/feedstock_root/build_artifacts/pygments_1736243443484/work
+pyproject_hooks==1.2.0
 python-dateutil @ file:///home/conda/feedstock_root/build_artifacts/python-dateutil_1733215673016/work
 pytz==2025.1
 pyzmq @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_95lsut8ymz/croot/pyzmq_1734709560733/work
+setuptools==75.8.0
 six @ file:///home/conda/feedstock_root/build_artifacts/six_1733380938961/work
 stack_data @ file:///home/conda/feedstock_root/build_artifacts/stack_data_1733569443808/work
 tornado @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_0axef5a0m0/croot/tornado_1733960501260/work
@@ -35,4 +41,5 @@ traitlets @ file:///home/conda/feedstock_root/build_artifacts/traitlets_17333673
 typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1733188668063/work
 tzdata==2025.1
 wcwidth @ file:///home/conda/feedstock_root/build_artifacts/wcwidth_1733231326287/work
+wheel==0.45.1
 zipp @ file:///home/conda/feedstock_root/build_artifacts/zipp_1732827521216/work
