@@ -1,5 +1,8 @@
 import pandas as pd
 
+def print_hello():
+    print("Hello, world!")
+
 class Grizzlies:
     def __init__(self, data=None, *args, **kwargs):
         if isinstance(data, pd.DataFrame):
@@ -129,3 +132,4 @@ def DataFrame(*args, **kwargs):
 
 def Series(*args, **kwargs):
     return pd.Series(*args, **kwargs)  # Keeping Series as a normal pandas object for now
+
