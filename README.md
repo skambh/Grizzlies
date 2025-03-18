@@ -11,11 +11,4 @@ _____
 Clone repo: https://github.com/skambh/Grizzlies
 Create virtual environment (venv or conda)
 pip install -r requirements.txt
-python3 -m pip install --upgrade build
-python3 -m build
-pip install Grizzlies
-import grizzlies
-
-After updating source:
-python -m build
-pip install dist/grizzlies-0.0.1-py3-none-any.whl --force-reinstall
+pip install -e . # for installing grizzlies
