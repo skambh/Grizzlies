@@ -12,3 +12,5 @@ Clone repo: https://github.com/skambh/Grizzlies
 Create virtual environment (venv or conda)
 pip install -r requirements.txt
 pip install -e . # for installing grizzlies
+
+python -m tests.test-temp-only to run tests
