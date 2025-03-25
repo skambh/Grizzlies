@@ -1,4 +1,4 @@
-# Grizzlies
+source# Grizzlies
 CSE 584 Final Project WN 25
 _____________________
 Kiran Bodipati
@@ -19,3 +19,5 @@ import grizzlies
 After updating source:
 python -m build
 pip install dist/grizzlies-0.0.1-py3-none-any.whl --force-reinstall
+
+Run test-temp-only using python -m tests.test-temp-only
