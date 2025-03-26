@@ -25,7 +25,7 @@ class Grizzlies:
     def _default_name(self):
         # You can customize what you want to hash
         # Sort by columns and index to avoid ordering affecting the hash
-        hash_input = str(sorted(self.df.columns.tolist())) + str(self.df.shape)
+        hash_input = str(sorted(self._df.columns.tolist())) + str(self._df.shape)
         return hashlib.md5(hash_input.encode()).hexdigest()
     
     def _save_stats(self):
