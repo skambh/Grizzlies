@@ -14,7 +14,7 @@ class Grizzlies:
             self._df = data
         else:
             self._df = pd.DataFrame(data, *args, **kwargs)
-            self._access_counts = {}  # Track accesses per column
+        self._access_counts = {}
         self._access_threshold = threshold
         self._hash_indices = {}
         os.makedirs("stats", exist_ok=True)
@@ -26,7 +26,7 @@ class Grizzlies:
         if not isinstance(val, int):
             raise TypeError("Cannot set index creation threshold to a non-integer value")
         self._access_threshold = val
-        
+
     def _default_name(self):
         # You can customize what you want to hash
         # Sort by columns and index to avoid ordering affecting the hash
