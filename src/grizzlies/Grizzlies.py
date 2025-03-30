@@ -118,6 +118,12 @@ class Grizzlies:
             
     def __getitem__(self, key):
         """Support indexing like df['column'] or df[['col1', 'col2']]."""
+        if isinstance(key, list):
+            result = self._df[key]
+            for k in key:
+              self._increment_access_count(k)
+            return Grizzlies(result)
+
         # handle boolean series ex. df[df['col1'] == x]
         if isinstance(key, pd.Series) and key.dtype == bool:
           self._increment_access_count(key.name)
@@ -126,7 +132,7 @@ class Grizzlies:
         if key in self._hash_indices:
             print(f"Using hash index for fast access on '{key}'")
             result = self._hash_indices[key]
-        
+        print("reached here")
         if key not in self._df.columns:
             raise KeyError(f"Column '{key}' not found in DataFrame")
 
