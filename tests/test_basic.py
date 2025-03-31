@@ -85,4 +85,4 @@ if __name__ == "__main__":
     test_mean()
     test_merge()
     test_groupby()
-    print("✅ All tests passed!")
+    print("All tests passed!")
