@@ -9,26 +9,29 @@ def print_hello():
     print("Hello, world!")
 
 class Grizzlies:
-    def __init__(self, data=None, *args, **kwargs):
+    def __init__(self, data=None, threshold=5, *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
             self._df = data
         else:
             self._df = pd.DataFrame(data, *args, **kwargs)
-            self._access_counts = {}  # Track accesses per column
-        self._access_threshold = 5
+        self._access_counts = {}
+        self._access_threshold = threshold
         self._hash_indices = {}
         os.makedirs("stats", exist_ok=True)
         object.__setattr__(self, "name", self._default_name())
         object.__setattr__(self, "stats_path", os.path.join("stats", f"{self.name}.pkl"))
         object.__setattr__(self, "_column_access_stats", self._load_stats())
 
+    def update_threshold(self, val):
+        if not isinstance(val, int):
+            raise TypeError("Cannot set index creation threshold to a non-integer value")
+        self._access_threshold = val
+
     def _default_name(self):
         # You can customize what you want to hash
         # Sort by columns and index to avoid ordering affecting the hash
-        sorted_df = self._df.sort_index(axis=0).sort_index(axis=1)
-        # Convert to bytes
-        df_bytes = pd.util.hash_pandas_object(sorted_df, index=True).values.tobytes()
-        return hashlib.md5(df_bytes).hexdigest()
+        hash_input = str(sorted(self._df.columns.tolist())) + str(self._df.shape)
+        return hashlib.md5(hash_input.encode()).hexdigest()
     
     def _save_stats(self):
         print("teehee")

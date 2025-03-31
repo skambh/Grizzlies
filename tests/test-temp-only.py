@@ -1,4 +1,4 @@
-from src.grizzlies.Grizzlies import Grizzlies
+from src.grizzlies.Grizzlies import Grizzlies, read_csv
 import time
 
 def test_my_function():
@@ -12,6 +12,13 @@ def test_my_function():
     df.save()
     df = Grizzlies(data)
 
+def read_in_csv():
+    data_csv = "tests/data/data.csv"
+    df = read_csv(data_csv)
+    print(type(df))
+    print(df['Date'])
+
     
 if __name__ == "__main__":
-    test_my_function()
+    # test_my_function()
+    read_in_csv()
