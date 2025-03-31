@@ -69,10 +69,6 @@ class Grizzlies:
         result = self._df[key]
         return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
 
-    def __setitem__(self, key, value):
-        """Support assignment like df['new_col'] = values."""
-        self._df[key] = value
-
     def __repr__(self):
         """Ensure the object prints like a normal DataFrame."""
         return repr(self._df)
@@ -175,6 +171,10 @@ class Grizzlies:
             # Build a hash index: mapping column values to row indices
             self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
             print(f"------Hash index created for column: {key}------")
+    
+    def info(self, *args, **kwargs):
+        """Provide DataFrame info."""
+        return self._df.info(*args, **kwargs)
 
 
 # Module-level functions
