@@ -200,7 +200,9 @@ class Grizzlies:
     def __setattr__(self, name, value):
         """Allow setting attributes on the underlying DataFrame."""
         if name.startswith("_"):
+        if name.startswith("_"):
             super().__setattr__(name, value)
+        elif hasattr(self._df, name):
         elif hasattr(self._df, name):
             setattr(self._df, name, value)
         else:
