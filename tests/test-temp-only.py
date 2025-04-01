@@ -9,7 +9,6 @@ def test_my_function():
         df['ID']
         end_time = time.time()
         print(f"time taken = {end_time - start_time}")
-    df['lolol']
     df.save()
     print(df.get_stats())
     df = Grizzlies(data)

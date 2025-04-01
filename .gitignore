@@ -3,12 +3,14 @@ tests/data/yelp_database.csv
 tests/data/*.zip
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 
 # C extensions
 *.so
+
+/.vscode
 
 *.pkl
 

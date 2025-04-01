@@ -4,10 +4,6 @@ import hashlib
 import pickle
 from collections import defaultdict, deque, Counter
 
-
-def print_hello():
-    print("Hello, world!")
-
 class Grizzlies:
     def __init__(self, data=None, scheme = "basic", threshold=5, windowsize=15, xval=5, *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
@@ -132,7 +128,7 @@ class Grizzlies:
         if key in self._hash_indices:
             print(f"Using hash index for fast access on '{key}'")
             result = self._hash_indices[key]
-        print("reached here")
+        # print("reached here")
         if key not in self._df.columns:
             raise KeyError(f"Column '{key}' not found in DataFrame")
 
