@@ -4,7 +4,8 @@ import time
 # from memory_profiler import memory_usage
 
 # Assuming Grizzles is your custom implementation
-from src.grizzlies.Grizzlies import Grizzlies
+# from src.grizzlies.Grizzlies import Grizzlies
+from grizzlies import Grizzlies
 
 def benchmark_function(func, *args, **kwargs):
     start_time = time.perf_counter()
@@ -18,7 +19,7 @@ if __name__ == "__main__":
     # Load Yelp dataset
     dataset_path = "tests/data/yelp_database.csv"  # Update with actual path
     df_pandas = pd.read_csv(dataset_path)
-    df_grizzles = Grizzlies(df_pandas.to_dict(orient='list'))  # Convert to Grizzles format
+    df_grizzles = Grizzlies.read_csv(dataset_path)  # Convert to Grizzles format
     print(df_grizzles)
 
     # Benchmark Multiple Column Access Performance (without explicit indexing)

@@ -128,7 +128,7 @@ class Grizzlies:
         if key in self._hash_indices:
             print(f"Using hash index for fast access on '{key}'")
             result = self._hash_indices[key]
-        # print("reached here")
+        print("reached here")
         if key not in self._df.columns:
             raise KeyError(f"Column '{key}' not found in DataFrame")
 
@@ -183,13 +183,38 @@ class Grizzlies:
     def isin(self, values):
         return self._df.isin(values)
 
-    def loc(self, *args):
-        result = self._df.loc[*args]
-        return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+    @property
+    def loc(self):
+        class LocWrapper:
+            def __init__(self, parent, loc_obj):
+                self._parent = parent
+                self._loc = loc_obj
 
-    def iloc(self, *args):
-        result = self._df.iloc[*args]
-        return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+            def __getitem__(self, key):
+                result = self._loc[key]
+                return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+
+            def __setitem__(self, key, value):
+                self._loc[key] = value  # Modify the underlying DataFrame
+
+        return LocWrapper(self, self._df.loc)
+
+    @property
+    def iloc(self):
+        class IlocWrapper:
+            def __init__(self, parent, iloc_obj):
+                self._parent = parent
+                self._iloc = iloc_obj
+
+            def __getitem__(self, key):
+                result = self._iloc[key]
+                return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+
+            def __setitem__(self, key, value):
+                self._iloc[key] = value  # Modify the underlying DataFrame
+
+        return IlocWrapper(self, self._df.iloc)
+
 
     def at(self, *args):
         return self._df.at[*args]
@@ -252,4 +277,3 @@ def DataFrame(*args, **kwargs):
 
 def Series(*args, **kwargs):
     return pd.Series(*args, **kwargs)  # Keeping Series as a normal pandas object for now
-
