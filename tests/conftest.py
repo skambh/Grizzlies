@@ -2,6 +2,16 @@ import pytest
 import grizzlies as gr
 from pandas import DataFrame
 
+
+@pytest.fixture(name='df')
+def sample_csv_grizzlies_df():
+    """Create a sample DataFrame for testing."""
+    data_csv = "tests/data/data.csv"
+    data_json = "/test/data/data.json"
+
+    df = gr.read_csv(data_csv)
+    return df
+
 @pytest.fixture()
 def sample_grizzlies_df():
     """Create a sample DataFrame for testing."""
