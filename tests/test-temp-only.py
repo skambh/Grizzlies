@@ -1,4 +1,4 @@
-from src.grizzlies.Grizzlies import Grizzlies
+import grizzlies as gr
 import time
 
 def test_my_function():

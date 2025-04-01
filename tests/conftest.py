@@ -1,5 +1,5 @@
 import pytest
-from src.grizzlies.Grizzlies import Grizzlies
+import grizzlies as gr
 from pandas import DataFrame
 
 @pytest.fixture()
@@ -10,7 +10,7 @@ def sample_grizzlies_df():
         'B': ['a', 'b', 'c', 'd', 'e'],
         'C': [1.1, 2.2, 3.3, 4.4, 5.5]
     }
-    return Grizzlies(data)
+    return gr.Grizzlies(data)
 
 @pytest.fixture()
 def sample_pandas_df():

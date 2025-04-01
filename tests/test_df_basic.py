@@ -1,7 +1,7 @@
 import pytest
 import pandas as pd
 import numpy as np
-from src.grizzlies.Grizzlies import Grizzlies
+import grizzlies as gr
 import pandas.testing as pdt
 
 def test_basic_properties(sample_grizzlies_df):
@@ -31,7 +31,7 @@ def test_column_iteration(sample_grizzlies_df):
 def test_column_access(sample_grizzlies_df):
     """Test column access"""
     # print(sample_grizzlies_df['A'].tolist())
-    expected_df = Grizzlies(pd.Series([1, 2, 3, 4, 5], name='A'))
+    expected_df = gr.Grizzlies(pd.Series([1, 2, 3, 4, 5], name='A'))
     pdt.assert_series_equal(sample_grizzlies_df['A'], expected_df['A'])
 
 
