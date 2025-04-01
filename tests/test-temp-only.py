@@ -13,7 +13,6 @@ def test_my_function():
     df.save()
     print(df.get_stats())
     df = Grizzlies(data)
-
     
 if __name__ == "__main__":
     test_my_function()

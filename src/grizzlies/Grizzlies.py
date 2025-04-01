@@ -4,10 +4,6 @@ import hashlib
 import pickle
 from collections import defaultdict, deque, Counter
 
-
-def print_hello():
-    print("Hello, world!")
-
 class Grizzlies:
     def __init__(self, data=None, scheme = "basic", threshold=5, windowsize=15, xval=5, *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
