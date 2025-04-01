@@ -14,6 +14,7 @@ pip install -r requirements.txt
 pip install -e . # for installing grizzlies
 
 python -m tests.test-temp-only to run tests
+
 After updating source:
 python -m build
 pip install dist/grizzlies-0.0.1-py3-none-any.whl --force-reinstall

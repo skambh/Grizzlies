@@ -9,50 +9,12 @@ def print_hello():
     print("Hello, world!")
 
 class Grizzlies:
-    def __init__(self, data=None, threshold=5, scheme = "basic", threshold=5, windowsize=15, xval=5, *args, **kwargs,,):
+    def __init__(self, data=None, scheme = "basic", threshold=5, windowsize=15, xval=5, *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
             self._df = data
         else:
             self._df = pd.DataFrame(data, *args, **kwargs)
-        self._access_counts = {}
-        self._access_threshold = threshold
-        self._hash_indices = {}
-        os.makedirs("stats", exist_ok=True)
-        object.__setattr__(self, "name", self._default_name())
-        object.__setattr__(self, "stats_path", os.path.join("stats", f"{self.name}.pkl"))
-        object.__setattr__(self, "_column_access_stats", self._load_stats())
-
-    def update_threshold(self, val):
-        if not isinstance(val, int):
-            raise TypeError("Cannot set index creation threshold to a non-integer value")
-        self._access_threshold = val
-
-    def _default_name(self):
-        # You can customize what you want to hash
-        # Sort by columns and index to avoid ordering affecting the hash
-        hash_input = str(sorted(self._df.columns.tolist())) + str(self._df.shape)
-        return hashlib.md5(hash_input.encode()).hexdigest()
-    
-    def _save_stats(self):
-        print("teehee")
-        with open(self.stats_path, 'wb') as f:
-            pickle.dump(dict(self._column_access_stats), f)
-
-    def _load_stats(self):
-        print("------checked here------")
-        if os.path.exists(self.stats_path):
-            with open(self.stats_path, 'rb') as f:
-                print("------found something------")
-                return defaultdict(int, pickle.load(f))
-        return defaultdict(int)
-    
-    def save(self):
-        self._save_stats()
-
-    def get_stats(self):
-        return dict(self._column_access_stats)
-
-            
+        
         self._scheme = scheme
         self._hash_indices = {}
         os.makedirs("stats", exist_ok=True)
@@ -176,16 +138,6 @@ class Grizzlies:
 
         self._increment_access_count(key)
         
-        if key in self._hash_indices:
-            print(f"Using hash index for fast access on '{key}'")
-            result = self._hash_indices[key]
-        
-        if key not in self._df.columns:
-            raise KeyError(f"Column '{key}' not found in DataFrame")
-
-        self._increment_access_count(key)
-        self._check_hash_index_creation(key)
-        
         result = self._df[key]
         return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
 
@@ -235,13 +187,38 @@ class Grizzlies:
     def isin(self, values):
         return self._df.isin(values)
 
-    def loc(self, *args):
-        result = self._df.loc[*args]
-        return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+    @property
+    def loc(self):
+        class LocWrapper:
+            def __init__(self, parent, loc_obj):
+                self._parent = parent
+                self._loc = loc_obj
 
-    def iloc(self, *args):
-        result = self._df.iloc[*args]
-        return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+            def __getitem__(self, key):
+                result = self._loc[key]
+                return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+
+            def __setitem__(self, key, value):
+                self._loc[key] = value  # Modify the underlying DataFrame
+
+        return LocWrapper(self, self._df.loc)
+
+    @property
+    def iloc(self):
+        class IlocWrapper:
+            def __init__(self, parent, iloc_obj):
+                self._parent = parent
+                self._iloc = iloc_obj
+
+            def __getitem__(self, key):
+                result = self._iloc[key]
+                return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+
+            def __setitem__(self, key, value):
+                self._iloc[key] = value  # Modify the underlying DataFrame
+
+        return IlocWrapper(self, self._df.iloc)
+
 
     def at(self, *args):
         return self._df.at[*args]
@@ -285,25 +262,6 @@ class Grizzlies:
         """Support df == value."""
         return self._df == (other._df if isinstance(other, Grizzlies) else other)
     
-    def _increment_access_count(self, key):
-        """Increase access count for the column"""
-        if key not in self._access_counts:
-            self._access_counts[key] = 0
-        self._access_counts[key] += 1
-        print(f"------at {self._access_counts[key]} accesses------")
-
-    def _check_hash_index_creation(self, key):
-        """Create a hash index when a column is accessed frequently"""
-        if self._access_counts[key] >= self._access_threshold and key not in self._hash_indices:
-            # Build a hash index: mapping column values to row indices
-            self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
-            print(f"------Hash index created for column: {key}------")
-    
-    def info(self, *args, **kwargs):
-        """Provide DataFrame info."""
-        return self._df.info(*args, **kwargs)
-
-    
 
 # Module-level functions
 def read_csv(*args, **kwargs):
@@ -323,4 +281,3 @@ def DataFrame(*args, **kwargs):
 
 def Series(*args, **kwargs):
     return pd.Series(*args, **kwargs)  # Keeping Series as a normal pandas object for now
-
