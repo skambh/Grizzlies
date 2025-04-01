@@ -1,13 +1,14 @@
 import pytest
 import grizzlies as gr
 from pandas import DataFrame
-
+from pathlib import Path
 
 @pytest.fixture(name='df')
 def sample_csv_grizzlies_df():
     """Create a sample DataFrame for testing."""
-    data_csv = "tests/data/data.csv"
-    data_json = "/test/data/data.json"
+    BASE_DIR = Path(__file__).resolve().parent
+    data_csv = BASE_DIR / "data" / "data.csv"
+    data_json = BASE_DIR / "data" / "data.json"
 
     df = gr.read_csv(data_csv)
     return df
