@@ -57,7 +57,7 @@ class Grizzlies:
 
     def _drop_index_threshold(self, counts):
         keys_to_del = []
-        # print(counts)
+        print(counts)
         for key in self._hash_indices.keys():
             if (key not in list(counts.keys())) or counts[key] < self._threshold:
                 keys_to_del.append(key)
@@ -98,9 +98,12 @@ class Grizzlies:
         self._sliding_window.append(key)
         if self._everyxth % self._xval == 0:
             counts = Counter(self._sliding_window)
+            print("-------")
             for key, count in counts.items():
+                print(key, count)
                 if (count >= self._threshold) and (key not in self._hash_indices.keys()):
                     # print(f"we need ta create one on {key}")
+                    print("here")
                     if len(self._hash_indices.keys()) >= self._max_indices:
                         # print("gotsta drop")
                         self._drop_index(counts)
@@ -178,7 +181,6 @@ class Grizzlies:
         if key in self._hash_indices:
             # print(f"Using hash index for fast access on '{key}'")
             result = self._hash_indices[key]
-        print("reached here")
         if key not in self._df.columns:
             raise KeyError(f"Column '{key}' not found in DataFrame")
 
@@ -189,6 +191,7 @@ class Grizzlies:
 
     def __setitem__(self, key, value):
         """Allow setting values like df['col'] = data."""
+        print("UPDATING SMTH")
         self._increment_access_count(key)
         self._df[key] = value
 
@@ -233,21 +236,21 @@ class Grizzlies:
     def isin(self, values):
         return self._df.isin(values)
 
-    @property
-    def loc(self):
-        class LocWrapper:
-            def __init__(self, parent, loc_obj):
-                self._parent = parent
-                self._loc = loc_obj
+    # @property
+    # def loc(self):
+    #     class LocWrapper:
+    #         def __init__(self, parent, loc_obj):
+    #             self._parent = parent
+    #             self._loc = loc_obj
 
-            def __getitem__(self, key):
-                result = self._loc[key]
-                return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
+    #         def __getitem__(self, key):
+    #             result = self._loc[key]
+    #             return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
 
-            def __setitem__(self, key, value):
-                self._loc[key] = value  # Modify the underlying DataFrame
+    #         def __setitem__(self, key, value):
+    #             self._loc[key] = value  # Modify the underlying DataFrame
 
-        return LocWrapper(self, self._df.loc)
+    #     return LocWrapper(self, self._df.loc)
 
     @property
     def iloc(self):
