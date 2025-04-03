@@ -57,12 +57,15 @@ class Grizzlies:
 
     def _drop_index_threshold(self, counts):
         keys_to_del = []
-        print(counts)
+        # print(counts)
         for key in self._hash_indices.keys():
             if (key not in list(counts.keys())) or counts[key] < self._threshold:
                 keys_to_del.append(key)
         for key in keys_to_del:
             del self._hash_indices[key]
+        if len(keys_to_del) == 0:
+            self._drop_index_lru(counts)
+
     
     def _drop_index_lru(self, counts):
         min_key, min_val = None, float('inf')
