@@ -1,6 +1,9 @@
 .DS_Store
 tests/data/yelp_database.csv
 tests/data/*.zip
+benchmarks/data/*.csv
+benchmarks/data/*.zip
+benchmarks/data
 
 # Byte-compiled / optimized / DLL files
 **/__pycache__/
