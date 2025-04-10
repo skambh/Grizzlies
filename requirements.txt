@@ -1,3 +1,6 @@
 pandas==2.2.3
 pytest==8.3.5
 tox==4.25.0
+memory_profiler
+tqdm
+numpy
