@@ -5,7 +5,7 @@ import pickle
 from collections import defaultdict, deque, Counter
 
 class Grizzlies:
-    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=5, drop_scheme = "threshold", *args, **kwargs,):
+    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "none", *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
             self._df = data
         else:
@@ -17,8 +17,16 @@ class Grizzlies:
         self._stats_path = os.path.join("stats", f"{self._default_name()}.pkl")
 
         if self._create_scheme == "basic":
-            self._increment_access_count = self._increment_access_count_basic
             self._access_counts = self._load_stats()
+            if drop_scheme=="lru":
+                self._everyxth = 0
+                self._xval = xval
+                self._lru_ctr = 0
+                self._lru = {}
+                self._increment_access_count = self._increment_access_count_lrubasic
+            else: # none
+                self._increment_access_count = self._increment_access_count_basic
+                
 
         elif self._create_scheme == "sliding":
             self._window_size = windowsize
@@ -122,6 +130,23 @@ class Grizzlies:
 
         if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
             self._create_index(key)
+
+    def _increment_access_count_lrubasic(self, key):
+        """Increase access count for the column for basic scheme and check to create index"""
+        self._lru[key] = self._lru_ctr
+        self._lru_ctr += 1
+        self._everyxth += 1
+
+        if key not in self._access_counts:
+            self._access_counts[key] = 0
+        self._access_counts[key] += 1
+        # print(f"------at {self._access_counts[key]} accesses------")
+        if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
+            self._create_index(key)
+        if self._everyxth % self._xval == 0 and len(self._hash_indices.keys()) >= self._max_indices:
+            print("ya boi boutta drop based on lru")
+            self._drop_index_lru(counts=None)
+
         
     def _create_index(self, key):
         """Create a hash index when a column is accessed frequently"""
