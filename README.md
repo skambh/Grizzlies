@@ -39,6 +39,17 @@
    pip install -e .
    ```
 
+5. Benchmarking
+#### Run Benchmarking
+Remember to run using the memory profiler command:
+```
+python -m memory_profiler benchmarks/{filename}
+```
+For example
+```bash
+python -m memory_profiler benchmarks/test_yelp.py
+```
+
 ### Running Tests
 
 #### Run all tests
@@ -68,3 +79,5 @@ pytest -k (keyword)
 
 # ex - pytest -k "na"
 ```
+
+
