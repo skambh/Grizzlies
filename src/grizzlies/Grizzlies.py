@@ -3,9 +3,11 @@ import os
 import hashlib
 import pickle
 from collections import defaultdict, deque, Counter
+import operator
+from itertools import chain
 
 class Grizzlies:
-    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "none", *args, **kwargs,):
+    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "none", index_type = 'hash', *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
             self._df = data
         else:
@@ -42,7 +44,13 @@ class Grizzlies:
                 self._drop_index = self._drop_index_lru
             else:
                 self._drop_index = self._drop_index_threshold
-            
+
+        if index_type == 'ordered':
+            self._create_index = self._create_index_ordered  
+            object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
+        else: # else is hash
+            self._create_index = self._create_index_hash 
+            object.__setattr__(self, "evalfunc", self.evalfunc_hash) 
             
         # create_scheme = BASIC - does not ever delete
         self._threshold = threshold 
@@ -148,10 +156,17 @@ class Grizzlies:
             self._drop_index_lru(counts=None)
 
         
-    def _create_index(self, key):
+    def _create_index_hash(self, key):
         """Create a hash index when a column is accessed frequently"""
         self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
         print(f"------Hash index created for column: {key}------")
+        print(self._hash_indices[key])
+    
+    def _create_index_ordered(self, key):
+        """Create a hash index when a column is accessed frequently"""
+        self._hash_indices[key] = dict(sorted({value: idx for idx, value in self._df[key].items()}.items()))
+        print(f"------Ordered index created for column: {key}------")
+        print(self._hash_indices[key])
 
 #################################################################################################################
 #                                      NON-schema specific functions below                                      #
@@ -163,7 +178,7 @@ class Grizzlies:
         return hashlib.md5(hash_input.encode()).hexdigest()
     
     def _load_stats(self):
-        print("------checked here------")
+        print("load stats called")
         if self._create_scheme == "basic":
             if os.path.exists(self._stats_path):
                 with open(self._stats_path, 'rb') as f:
@@ -192,7 +207,31 @@ class Grizzlies:
             return dict(self._access_counts)
         elif self._create_scheme == "sliding":
             return dict(Counter(self._sliding_window))
-            
+
+    def evalfunc_ordered(self, colname, op ,val):
+        self._increment_access_count(colname)
+        if colname in self._hash_indices:
+            print("using index")
+            mask = pd.Series(0, index=range(len(self._df)))
+            mask.iloc[[v for k, v in self._hash_indices[colname].items() if op(k, val)]] = 1
+            return self._df[mask.astype(bool)]
+        else:
+            return self._df[op(self._df[colname], val)]
+
+    def evalfunc_hash(self, colname, op ,val):
+        self._increment_access_count(colname)
+        if colname in self._hash_indices and op == operator.eq:
+            print("using index")
+            mask = pd.Series(0, index=range(len(self._df)))
+            mask.iloc[self._hash_indices[colname][val]] = 1
+            return self._df[mask.astype(bool)]
+        else:
+            return self._df[op(self._df[colname], val)]
+        
+    def query(self, expr, **kwargs):
+        print(f"Intercepted query: {expr}") 
+        return self._df.query(expr, **kwargs)
+
     def __getitem__(self, key):
         """Support indexing like df['column'] or df[['col1', 'col2']]."""
         if isinstance(key, list):
@@ -206,11 +245,11 @@ class Grizzlies:
           self._increment_access_count(key.name)
           return Grizzlies(self._df[key])
 
-        if key in self._hash_indices:
-            # print(f"Using hash index for fast access on '{key}'")
-            result = self._hash_indices[key]
-        if key not in self._df.columns:
-            raise KeyError(f"Column '{key}' not found in DataFrame")
+        # if key in self._hash_indices:
+        #     # print(f"Using hash index for fast access on '{key}'")
+        #     result = self._hash_indices[key]
+        # if key not in self._df.columns:
+        #     raise KeyError(f"Column '{key}' not found in DataFrame")
 
         self._increment_access_count(key)
         

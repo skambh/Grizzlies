@@ -1,5 +1,6 @@
 from src.grizzlies.Grizzlies import Grizzlies
 import time
+import operator
 
 def test_my_function():
     data = {'ID': [1, 2, 3, 4], 'Value': [10, 20, 30, 40], 'Category': ['A', 'B', 'C', 'D'], 'lolol':[32, 44, 22, 33]}
@@ -57,6 +58,14 @@ def test_basic_lru():
         df['Value']
     print(df._hash_indices)
 
+def test_real_basic():
+    data = {'ID': [1, 2, 3, 4], 'Value': [10, 20, 30, 40], 'Category': ['A', 'C', 'B', 'D'], 'lolol':[32, 44, 22, 33], 'hhe':['d','w','ee','w']}
+    df = Grizzlies(data, create_scheme="basic", index_type='ordered')
+    for i in range(20):
+        print(df.evalfunc('Category',operator.gt,'A'))
+        # print(df[df['Category']=='A'])
+        # print(df.query("Category == 'A'"))
+    print(df.evalfunc('Category',operator.eq,'A'))
 
 
     
@@ -64,4 +73,5 @@ if __name__ == "__main__":
     # test_my_function()
     # test_sliding_print_shi()
     # test_sliding_every5()
-    test_basic_lru()
+    # test_basic_lru()
+    test_real_basic()
