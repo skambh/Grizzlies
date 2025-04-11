@@ -47,10 +47,10 @@ class Grizzlies:
 
         if index_type == 'ordered':
             self._create_index = self._create_index_ordered  
-            object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
+            object.__setattr__(self, "evalfunc", self.evalfunc_ordered2)
         else: # else is hash
             self._create_index = self._create_index_hash 
-            object.__setattr__(self, "evalfunc", self.evalfunc_hash) 
+            object.__setattr__(self, "evalfunc", self.evalfunc_hash2) 
             
         # create_scheme = BASIC - does not ever delete
         self._threshold = threshold 
@@ -228,6 +228,28 @@ class Grizzlies:
         else:
             return self._df[op(self._df[colname], val)]
         
+    def evalfunc_ordered2(self, colname, op, val):
+        if colname in self._hash_indices:
+            print("USING THE FAST ONE HOPEFULLy")
+            idxs = list(chain.from_iterable(
+                v if isinstance(v, list) else [v]
+                for k, v in self._hash_indices[colname].items()
+                if op(k, val)
+            ))
+
+            return self._df.iloc[idxs]
+        else:
+            return self._df[op(self._df[colname], val)]
+    
+    def evalfunc_hash2(self, colname, op ,val):
+        self._increment_access_count(colname)
+        if colname in self._hash_indices and op == operator.eq:
+            print("using index")
+            return self._df.iloc[[self._hash_indices[colname][val]]]
+        else:
+            return self._df[op(self._df[colname], val)]
+        
+                
     def query(self, expr, **kwargs):
         print(f"Intercepted query: {expr}") 
         return self._df.query(expr, **kwargs)
