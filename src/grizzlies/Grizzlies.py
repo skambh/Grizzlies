@@ -47,10 +47,10 @@ class Grizzlies:
 
         if index_type == 'ordered':
             self._create_index = self._create_index_ordered  
-            object.__setattr__(self, "evalfunc", self.evalfunc_ordered2)
+            object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
         else: # else is hash
             self._create_index = self._create_index_hash 
-            object.__setattr__(self, "evalfunc", self.evalfunc_hash2) 
+            object.__setattr__(self, "evalfunc", self.evalfunc_hash) 
             
         # create_scheme = BASIC - does not ever delete
         self._threshold = threshold 
@@ -208,27 +208,8 @@ class Grizzlies:
         elif self._create_scheme == "sliding":
             return dict(Counter(self._sliding_window))
 
-    def evalfunc_ordered(self, colname, op ,val):
-        self._increment_access_count(colname)
-        if colname in self._hash_indices:
-            print("using index")
-            mask = pd.Series(0, index=range(len(self._df)))
-            mask.iloc[[v for k, v in self._hash_indices[colname].items() if op(k, val)]] = 1
-            return self._df[mask.astype(bool)]
-        else:
-            return self._df[op(self._df[colname], val)]
-
-    def evalfunc_hash(self, colname, op ,val):
-        self._increment_access_count(colname)
-        if colname in self._hash_indices and op == operator.eq:
-            print("using index")
-            mask = pd.Series(0, index=range(len(self._df)))
-            mask.iloc[self._hash_indices[colname][val]] = 1
-            return self._df[mask.astype(bool)]
-        else:
-            return self._df[op(self._df[colname], val)]
         
-    def evalfunc_ordered2(self, colname, op, val):
+    def evalfunc_ordered(self, colname, op, val):
         if colname in self._hash_indices:
             print("USING THE FAST ONE HOPEFULLy")
             idxs = list(chain.from_iterable(
@@ -241,7 +222,7 @@ class Grizzlies:
         else:
             return self._df[op(self._df[colname], val)]
     
-    def evalfunc_hash2(self, colname, op ,val):
+    def evalfunc_hash(self, colname, op ,val):
         self._increment_access_count(colname)
         if colname in self._hash_indices and op == operator.eq:
             print("using index")
