@@ -158,7 +158,10 @@ class Grizzlies:
         
     def _create_index_hash(self, key):
         """Create a hash index when a column is accessed frequently"""
-        self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
+        self._hash_indices[key] = defaultdict(list)
+        for idx, value in self._df[key].items():
+          self._hash_indices[key][value].append(idx)
+        # self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
         print(f"------Hash index created for column: {key}------")
         print(self._hash_indices[key])
     
@@ -225,8 +228,7 @@ class Grizzlies:
     def evalfunc_hash(self, colname, op ,val):
         self._increment_access_count(colname)
         if colname in self._hash_indices and op == operator.eq:
-            print("using index")
-            return self._df.iloc[[self._hash_indices[colname][val]]]
+            return self._df.iloc[self._hash_indices[colname][val]]
         else:
             return self._df[op(self._df[colname], val)]
         
