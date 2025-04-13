@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from grizzlies import Grizzlies
+import operator
 from benchmarks.utils.utils import benchmark_function, repeat_benchmark, export_benchmark_results
 
 benchmark_results = []
@@ -9,7 +10,7 @@ def load_and_prepare_dataset(path: str, scaling_factor: int = 1):
     df = pd.read_csv(path)
     if scaling_factor > 1:
         df = pd.concat([df] * scaling_factor, ignore_index=True)
-    return df, Grizzlies(df)
+    return df, Grizzlies(df, create_scheme="basic", drop_scheme='lru', index_type="hash", xval=10)
 
 
 def benchmark_column_access(df_pandas, df_grizzlies):
@@ -33,9 +34,11 @@ def benchmark_column_access(df_pandas, df_grizzlies):
 def benchmark_row_lookup(df_pandas, df_grizzlies):
     lookup_id = df_pandas['ID'].iloc[50000]
 
-    _, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['ID'] == lookup_id], desc="Pandas Row Lookup")
-    _, gt, gm = repeat_benchmark(lambda: df_grizzlies[df_grizzlies['ID'] == lookup_id], desc="Grizzlies Row Lookup")
+    resp, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['Rating'] == 3], desc="Pandas Row Lookup")
+    resg, gt, gm = repeat_benchmark(lambda: df_grizzlies.evalfunc('Rating', operator.eq, 3), desc="Grizzlies Row Lookup")
     print(f"[Row Lookup] Pandas: {pt:.6f}s, {pm:.4f} MiB | Grizzlies: {gt:.6f}s, {gm:.4f} MiB")
+    print(resp)
+    print(resg)
     benchmark_results.append(["Row Lookup", "Pandas", pt, pm])
     benchmark_results.append(["Row Lookup", "Grizzlies", gt, gm])
 
@@ -181,7 +184,7 @@ def benchmark_value_counts(df_pandas, df_grizzlies):
 
 def main():
     dataset_path = "tests/data/yelp_database.csv"
-    scaling_factor = 4
+    scaling_factor = 20
 
     df_pandas, df_grizzlies = load_and_prepare_dataset(dataset_path, scaling_factor)
     print("Dataset loaded and scaled. Starting benchmarks...\n")
