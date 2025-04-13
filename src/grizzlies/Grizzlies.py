@@ -120,12 +120,12 @@ class Grizzlies:
         self._sliding_window.append(key)
         if self._everyxth % self._xval == 0:
             counts = Counter(self._sliding_window)
-            print("-------")
+            # print("-------")
             for key, count in counts.items():
-                print(key, count)
+                # print(key, count)
                 if (count >= self._threshold) and (key not in self._hash_indices.keys()):
                     # print(f"we need ta create one on {key}")
-                    print("here")
+                    # print("here")
                     if len(self._hash_indices.keys()) >= self._max_indices:
                         # print("gotsta drop")
                         self._drop_index(counts)
@@ -155,7 +155,7 @@ class Grizzlies:
         if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
             self._create_index(key)
         if self._everyxth % self._xval == 0 and len(self._hash_indices.keys()) >= self._max_indices:
-            print("ya boi boutta drop based on lru")
+            # print("ya boi boutta drop based on lru")
             self._drop_index_lru(counts=None)
 
         
@@ -165,8 +165,8 @@ class Grizzlies:
         for idx, value in self._df[key].items():
           self._hash_indices[key][value].append(idx)
         # self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
-        print(f"------Hash index created for column: {key}------")
-        print(self._hash_indices[key])
+        # print(f"------Hash index created for column: {key}------")
+        # print(self._hash_indices[key])
     
     def _create_index_ordered(self, key):
         """Create a hash index when a column is accessed frequently"""
@@ -175,8 +175,8 @@ class Grizzlies:
           if value not in self._hash_indices[key]:
               self._hash_indices[key][value] = []
           self._hash_indices[key][value].append(idx)
-        print(f"------Sorted index created for column: {key}------")
-        print(self._hash_indices[key])
+        # print(f"------Sorted index created for column: {key}------")
+        # print(self._hash_indices[key])
 
 #################################################################################################################
 #                                      NON-schema specific functions below                                      #
@@ -188,23 +188,23 @@ class Grizzlies:
         return hashlib.md5(hash_input.encode()).hexdigest()
     
     def _load_stats(self):
-        print("load stats called")
+        # print("load stats called")
         if self._create_scheme == "basic":
             if os.path.exists(self._stats_path):
                 with open(self._stats_path, 'rb') as f:
-                    print("------found something------")
+                    # print("------found something------")
                     return defaultdict(int, pickle.load(f))
             return defaultdict(int)
         elif self._create_scheme == "sliding":
             if os.path.exists(self._stats_path):
                 with open(self._stats_path, 'rb') as f:
-                    print("------found something------")
+                    # print("------found something------")
                     return pickle.load(f)
             return deque(maxlen=self._window_size)
 
     
     def save(self):
-        print("Saved the stats")
+        # print("Saved the stats")
         if self._create_scheme == "basic":
             with open(self._stats_path, 'wb') as f:
                 pickle.dump(self._access_counts, f)
@@ -249,7 +249,7 @@ class Grizzlies:
         
                 
     def query(self, expr, **kwargs):
-        print(f"Intercepted query: {expr}") 
+        # print(f"Intercepted query: {expr}") 
         return self._df.query(expr, **kwargs)
 
     def __getitem__(self, key):
@@ -278,7 +278,7 @@ class Grizzlies:
 
     def __setitem__(self, key, value):
         """Allow setting values like df['col'] = data."""
-        print("UPDATING SMTH")
+        # print("UPDATING SMTH")
         self._increment_access_count(key)
         self._df[key] = value
 
