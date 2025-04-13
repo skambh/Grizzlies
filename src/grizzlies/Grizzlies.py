@@ -5,6 +5,7 @@ import pickle
 from collections import defaultdict, deque, Counter
 import operator
 from itertools import chain
+from sortedcontainers import SortedDict
 
 class Grizzlies:
     def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "none", index_type = 'hash', *args, **kwargs,):
@@ -14,9 +15,16 @@ class Grizzlies:
             self._df = pd.DataFrame(data, *args, **kwargs)
         
         self._create_scheme = create_scheme
-        self._hash_indices = {}
+        
         os.makedirs("stats", exist_ok=True)
         self._stats_path = os.path.join("stats", f"{self._default_name()}.pkl")
+        self._hash_indices = {}
+        if index_type.lower() == 'ordered' or index_type.lower() == 'sorted':
+            self._create_index = self._create_index_ordered  
+            object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
+        else: # else is hash
+            self._create_index = self._create_index_hash 
+            object.__setattr__(self, "evalfunc", self.evalfunc_hash) 
 
         if self._create_scheme == "basic":
             self._access_counts = self._load_stats()
@@ -45,12 +53,7 @@ class Grizzlies:
             else:
                 self._drop_index = self._drop_index_threshold
 
-        if index_type == 'ordered':
-            self._create_index = self._create_index_ordered  
-            object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
-        else: # else is hash
-            self._create_index = self._create_index_hash 
-            object.__setattr__(self, "evalfunc", self.evalfunc_hash) 
+        
             
         # create_scheme = BASIC - does not ever delete
         self._threshold = threshold 
@@ -167,8 +170,12 @@ class Grizzlies:
     
     def _create_index_ordered(self, key):
         """Create a hash index when a column is accessed frequently"""
-        self._hash_indices[key] = dict(sorted({value: idx for idx, value in self._df[key].items()}.items()))
-        # print(f"------Ordered index created for column: {key}------")
+        self._hash_indices[key] = SortedDict()
+        for idx, value in self._df[key].items():
+          if value not in self._hash_indices[key]:
+              self._hash_indices[key][value] = []
+          self._hash_indices[key][value].append(idx)
+        # print(f"------Sorted index created for column: {key}------")
         # print(self._hash_indices[key])
 
 #################################################################################################################
@@ -213,17 +220,25 @@ class Grizzlies:
 
         
     def evalfunc_ordered(self, colname, op, val):
-        if colname in self._hash_indices:
-            # print("USING THE FAST ONE HOPEFULLy")
-            idxs = list(chain.from_iterable(
-                v if isinstance(v, list) else [v]
-                for k, v in self._hash_indices[colname].items()
-                if op(k, val)
-            ))
+        self._increment_access_count(colname)
+        if colname in self._hash_indices:        
+            if op == operator.gt:
+                keys = self._hash_indices[colname].irange(minimum=val, inclusive=(False, True))
+            elif op == operator.ge:
+                keys = self._hash_indices[colname].irange(minimum=val, inclusive=(True, True))
+            elif op == operator.lt:
+                keys = self._hash_indices[colname].irange(maximum=val, inclusive=(False, True))
+            elif op == operator.le:
+                keys = self._hash_indices[colname].irange(maximum=val, inclusive=(True, True))
+            elif op == operator.eq:
+                return self._df.iloc[self._hash_indices[colname].get(val, [])]
+            else:
+                raise NotImplementedError("Unsupported operator")
 
-            return self._df.iloc[idxs]
+            return self._df.iloc[list(chain.from_iterable(self._hash_indices[colname][k] for k in keys))]
         else:
             return self._df[op(self._df[colname], val)]
+
     
     def evalfunc_hash(self, colname, op ,val):
         self._increment_access_count(colname)
