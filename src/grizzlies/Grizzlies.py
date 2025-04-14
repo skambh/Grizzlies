@@ -3,60 +3,131 @@ import os
 import hashlib
 import pickle
 from collections import defaultdict, deque, Counter
-
-
-def print_hello():
-    print("Hello, world!")
+import operator
+from itertools import chain
+from sortedcontainers import SortedDict
 
 class Grizzlies:
-    def __init__(self, data=None, scheme = "basic", threshold=5, windowsize=15, xval=5, *args, **kwargs,):
+    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "none", index_type = 'hash', *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
             self._df = data
         else:
             self._df = pd.DataFrame(data, *args, **kwargs)
         
-        self._scheme = scheme
-        self._hash_indices = {}
+        self._create_scheme = create_scheme
+        
         os.makedirs("stats", exist_ok=True)
         self._stats_path = os.path.join("stats", f"{self._default_name()}.pkl")
+        self._hash_indices = {}
+        if index_type.lower() == 'ordered' or index_type.lower() == 'sorted':
+            self._create_index = self._create_index_ordered  
+            object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
+        else: # else is hash
+            self._create_index = self._create_index_hash 
+            object.__setattr__(self, "evalfunc", self.evalfunc_hash) 
 
-        #  SCHEME = SLIDING - uses sliding logic
-        if self._scheme == "basic":
-            self._increment_access_count = self._increment_access_count_basic
+        if self._create_scheme == "basic":
             self._access_counts = self._load_stats()
+            if drop_scheme=="lru":
+                self._everyxth = 0
+                self._xval = xval
+                self._lru_ctr = 0
+                self._lru = {}
+                self._increment_access_count = self._increment_access_count_lrubasic
+            else: # none
+                self._increment_access_count = self._increment_access_count_basic
+                
 
-        elif self._scheme == "sliding":
+        elif self._create_scheme == "sliding":
             self._window_size = windowsize
             self._everyxth = 0
             self._xval = xval
             self._increment_access_count = self._increment_access_count_sliding
             self._sliding_window = self._load_stats() # deque(maxlen=window)
+            self._lru_ctr = 0
+            self._lru = self._set_lru()
+            if drop_scheme == "min":
+                self._drop_index = self._drop_index_min
+            elif drop_scheme == "lru":
+                self._drop_index = self._drop_index_lru
+            else:
+                self._drop_index = self._drop_index_threshold
+
+        
             
-        # SCHEME = BASIC - does not ever delete
+        # create_scheme = BASIC - does not ever delete
         self._threshold = threshold 
         self._max_indices = int(windowsize/threshold) # this is a heuristic, can use a diff way that is dynamic?
 
     # removed update_threshold, specify when creating instead. too much logic otherwise
 
-
 #################################################################################################################
 #                                        schema specific functions below                                        #
 #################################################################################################################
 
-    def _drop_index(self, counts):
+    def _set_lru(self):
+        i = 0
+        lru = {}
+        for item in self._sliding_window:
+            lru[item] = i
+            i += 1
+        self._lru_ctr = i
+        return lru
+
+    def _drop_index_threshold(self, counts):
+        keys_to_del = []
+        # print(counts)
         for key in self._hash_indices.keys():
             if (key not in list(counts.keys())) or counts[key] < self._threshold:
-                del self._hash_indices[key]
+                keys_to_del.append(key)
+        for key in keys_to_del:
+            del self._hash_indices[key]
+        if len(keys_to_del) == 0:
+            self._drop_index_lru(counts)
+
+    
+    def _drop_index_lru(self, counts):
+        min_key, min_val = None, float('inf')
+        for key in self._hash_indices.keys():
+            if self._lru[key] < min_val:
+                min_val = self._lru[key]
+                min_key = key
+        # print(self._lru)
+        # print(min_key)
+        del self._hash_indices[min_key]
+
+    def _drop_index_min(self, counts):
+        min_count = self._threshold
+        min_key = None
+        for key in self._hash_indices.keys():
+            if (key not in list(counts.keys())):
+                min_key = key
+                break
+            if counts[key] < min_count:
+                min_count = counts[key]
+                min_key = key
+        # print(min_key)
+        del self._hash_indices[min_key]
+        
 
     def _increment_access_count_sliding(self, key):
-        """Increase access count for the column for sliding scheme"""
+        """Increase access count for the column for sliding scheme, updates lru"""
+        # update lru - might be able to remove
+        self._lru[key] = self._lru_ctr
+        self._lru_ctr += 1
+
         self._everyxth += 1
         self._sliding_window.append(key)
-        if self._everyxth % self._xval:
+        if self._everyxth % self._xval == 0:
             counts = Counter(self._sliding_window)
+            # print("-------")
             for key, count in counts.items():
-                if (count > self._threshold) and (key not in self._hash_indices.keys()):
-                    if len(self._hash_indices.keys()) > self._max_indices:
+                # print(key, count)
+                if (count >= self._threshold) and (key not in self._hash_indices.keys()):
+                    # print(f"we need ta create one on {key}")
+                    # print("here")
+                    if len(self._hash_indices.keys()) >= self._max_indices:
+                        # print("gotsta drop")
                         self._drop_index(counts)
                     self._create_index(key)
 
@@ -66,15 +137,46 @@ class Grizzlies:
         if key not in self._access_counts:
             self._access_counts[key] = 0
         self._access_counts[key] += 1
-        print(f"------at {self._access_counts[key]} accesses------")
+        # print(f"------at {self._access_counts[key]} accesses------")
 
         if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
             self._create_index(key)
+
+    def _increment_access_count_lrubasic(self, key):
+        """Increase access count for the column for basic scheme and check to create index"""
+        self._lru[key] = self._lru_ctr
+        self._lru_ctr += 1
+        self._everyxth += 1
+
+        if key not in self._access_counts:
+            self._access_counts[key] = 0
+        self._access_counts[key] += 1
+        # print(f"------at {self._access_counts[key]} accesses------")
+        if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
+            self._create_index(key)
+        if self._everyxth % self._xval == 0 and len(self._hash_indices.keys()) >= self._max_indices:
+            # print("ya boi boutta drop based on lru")
+            self._drop_index_lru(counts=None)
+
         
-    def _create_index(self, key):
+    def _create_index_hash(self, key):
         """Create a hash index when a column is accessed frequently"""
-        self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
-        print(f"------Hash index created for column: {key}------")
+        self._hash_indices[key] = defaultdict(list)
+        for idx, value in self._df[key].items():
+          self._hash_indices[key][value].append(idx)
+        # self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
+        # print(f"------Hash index created for column: {key}------")
+        # print(self._hash_indices[key])
+    
+    def _create_index_ordered(self, key):
+        """Create a hash index when a column is accessed frequently"""
+        self._hash_indices[key] = SortedDict()
+        for idx, value in self._df[key].items():
+          if value not in self._hash_indices[key]:
+              self._hash_indices[key][value] = []
+          self._hash_indices[key][value].append(idx)
+        # print(f"------Sorted index created for column: {key}------")
+        # print(self._hash_indices[key])
 
 #################################################################################################################
 #                                      NON-schema specific functions below                                      #
@@ -82,40 +184,74 @@ class Grizzlies:
 
     def _default_name(self):
         # Sort by columns and index to avoid ordering affecting the hash
-        hash_input = str(sorted(self._df.columns.tolist())) + str(self._df.shape) + self._scheme
+        hash_input = str(sorted(self._df.columns.tolist())) + str(self._df.shape) + self._create_scheme
         return hashlib.md5(hash_input.encode()).hexdigest()
     
     def _load_stats(self):
-        print("------checked for existing stats------")
-        if self._scheme == "basic":
+        # print("load stats called")
+        if self._create_scheme == "basic":
             if os.path.exists(self._stats_path):
                 with open(self._stats_path, 'rb') as f:
-                    print("------found stats------")
+                    # print("------found something------")
                     return defaultdict(int, pickle.load(f))
             return defaultdict(int)
-        elif self._scheme == "sliding":
+        elif self._create_scheme == "sliding":
             if os.path.exists(self._stats_path):
                 with open(self._stats_path, 'rb') as f:
-                    print("------found stats------")
+                    # print("------found something------")
                     return pickle.load(f)
             return deque(maxlen=self._window_size)
 
     
     def save(self):
-        print("Saved the stats")
-        if self._scheme == "basic":
+        # print("Saved the stats")
+        if self._create_scheme == "basic":
             with open(self._stats_path, 'wb') as f:
                 pickle.dump(self._access_counts, f)
-        elif self._scheme == "sliding":
+        elif self._create_scheme == "sliding":
             with open(self._stats_path, 'wb') as f:
                 pickle.dump(self._sliding_window, f)
 
     def get_stats(self):
-        if self._scheme == "basic":
+        if self._create_scheme == "basic":
             return dict(self._access_counts)
-        elif self._scheme == "sliding":
+        elif self._create_scheme == "sliding":
             return dict(Counter(self._sliding_window))
-            
+
+        
+    def evalfunc_ordered(self, colname, op, val):
+        self._increment_access_count(colname)
+        if colname in self._hash_indices:        
+            if op == operator.gt:
+                keys = self._hash_indices[colname].irange(minimum=val, inclusive=(False, True))
+            elif op == operator.ge:
+                keys = self._hash_indices[colname].irange(minimum=val, inclusive=(True, True))
+            elif op == operator.lt:
+                keys = self._hash_indices[colname].irange(maximum=val, inclusive=(False, True))
+            elif op == operator.le:
+                keys = self._hash_indices[colname].irange(maximum=val, inclusive=(True, True))
+            elif op == operator.eq:
+                return self._df.iloc[self._hash_indices[colname].get(val, [])]
+            else:
+                raise NotImplementedError("Unsupported operator")
+
+            return self._df.iloc[list(chain.from_iterable(self._hash_indices[colname][k] for k in keys))]
+        else:
+            return self._df[op(self._df[colname], val)]
+
+    
+    def evalfunc_hash(self, colname, op ,val):
+        self._increment_access_count(colname)
+        if colname in self._hash_indices and op == operator.eq:
+            return self._df.iloc[self._hash_indices[colname][val]]
+        else:
+            return self._df[op(self._df[colname], val)]
+        
+                
+    def query(self, expr, **kwargs):
+        # print(f"Intercepted query: {expr}") 
+        return self._df.query(expr, **kwargs)
+
     def __getitem__(self, key):
         """Support indexing like df['column'] or df[['col1', 'col2']]."""
         if isinstance(key, list):
@@ -129,11 +265,11 @@ class Grizzlies:
           self._increment_access_count(key.name)
           return Grizzlies(self._df[key])
 
-        if key in self._hash_indices:
-            print(f"Using hash index for fast access on '{key}'")
-            result = self._hash_indices[key]
-        if key not in self._df.columns:
-            raise KeyError(f"Column '{key}' not found in DataFrame")
+        # if key in self._hash_indices:
+        #     # print(f"Using hash index for fast access on '{key}'")
+        #     result = self._hash_indices[key]
+        # if key not in self._df.columns:
+        #     raise KeyError(f"Column '{key}' not found in DataFrame")
 
         self._increment_access_count(key)
 
@@ -144,6 +280,7 @@ class Grizzlies:
 
     def __setitem__(self, key, value):
         """Allow setting values like df['col'] = data."""
+        # print("UPDATING SMTH")
         self._increment_access_count(key)
         self._df[key] = value
 
