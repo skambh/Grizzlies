@@ -86,17 +86,17 @@ class Grizzlies:
         return hashlib.md5(hash_input.encode()).hexdigest()
     
     def _load_stats(self):
-        print("------checked here------")
+        print("------checked for existing stats------")
         if self._scheme == "basic":
             if os.path.exists(self._stats_path):
                 with open(self._stats_path, 'rb') as f:
-                    print("------found something------")
+                    print("------found stats------")
                     return defaultdict(int, pickle.load(f))
             return defaultdict(int)
         elif self._scheme == "sliding":
             if os.path.exists(self._stats_path):
                 with open(self._stats_path, 'rb') as f:
-                    print("------found something------")
+                    print("------found stats------")
                     return pickle.load(f)
             return deque(maxlen=self._window_size)
 
@@ -132,11 +132,12 @@ class Grizzlies:
         if key in self._hash_indices:
             print(f"Using hash index for fast access on '{key}'")
             result = self._hash_indices[key]
-        print("reached here")
         if key not in self._df.columns:
             raise KeyError(f"Column '{key}' not found in DataFrame")
 
         self._increment_access_count(key)
+
+        # print(self._access_counts)
         
         result = self._df[key]
         return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
@@ -190,34 +191,101 @@ class Grizzlies:
     @property
     def loc(self):
         class LocWrapper:
-            def __init__(self, parent, loc_obj):
+            def __init__(self, parent):
                 self._parent = parent
-                self._loc = loc_obj
+                self._df = self.parent._df
 
             def __getitem__(self, key):
-                result = self._loc[key]
+                if isinstance(key, pd.Series) and key.dtype == bool:
+                    return self._df.loc[key]
+
+                cols = None
+                if isinstance(key, tuple) and len(key) == 2:
+                    cols = key[1]
+                else:
+                    cols = key
+
+                if isinstance(cols, str):
+                    if cols in self._df.columns:
+                        self._parent._increment_access_count(cols)
+                elif isinstance(cols, list):
+                    for col in cols:
+                        if col in self._df.columns:
+                            self._parent._increment_access_count(col)
+
+                result = self._df.loc[key]
+
                 return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
 
             def __setitem__(self, key, value):
-                self._loc[key] = value  # Modify the underlying DataFrame
+                if isinstance(key, pd.Series) and key.dtype == bool:
+                    self._df.loc[key] = value
+                    return
 
-        return LocWrapper(self, self._df.loc)
+                cols = None
+                if isinstance(key, tuple) and len(key) == 2:
+                    cols = key[1]
+                else:
+                    cols = key
+
+                if isinstance(cols, str):
+                    if cols in self._df.columns:
+                        self._parent._increment_access_count(cols)
+                elif isinstance(cols, list):
+                    for col in cols:
+                        if col in self._df.columns:
+                            self._parent._increment_access_count(col)
+
+                self._df.loc[key] = value
+
+        return LocWrapper(self, self._parent._df.loc)
 
     @property
     def iloc(self):
         class IlocWrapper:
-            def __init__(self, parent, iloc_obj):
+            def __init__(self, parent):
                 self._parent = parent
-                self._iloc = iloc_obj
+                self._df = self.parent._df
 
             def __getitem__(self, key):
-                result = self._iloc[key]
+                if isinstance(key, tuple) and len(key) == 2:
+                    cols = key[1]
+                else:
+                    cols = key
+
+                if isinstance(cols, int):
+                    if cols < len(self._df.columns):
+                        colname = self._df.columns[cols]
+                        self._parent._increment_access_count(colname)
+                elif isinstance(cols, list):
+                    for col in cols:
+                        if col < len(self._df.columns):
+                            colname = self._df.columns[col]
+                            self._parent._increment_access_count(colname)
+
+                result = self._df.iloc[key]
+
                 return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
 
             def __setitem__(self, key, value):
-                self._iloc[key] = value  # Modify the underlying DataFrame
+                if isinstance(key, tuple) and len(key) == 2:
+                    cols = key[1]
+                else:
+                    cols = key
 
-        return IlocWrapper(self, self._df.iloc)
+                if isinstance(cols, int):
+                    if cols < len(self._df.columns):
+                        colname = self._df.columns[cols]
+                        self._parent._increment_access_count(colname)
+                elif isinstance(cols, list):
+                    for col in cols:
+                        if col < len(self._df.columns):
+                            colname = self._df.columns[col]
+                            self._parent._increment_access_count(colname)
+
+                self._df.iloc[key] = value
+
+        return IlocWrapper(self, self._parent._df.iloc)
 
 
     def at(self, *args):
@@ -281,3 +349,39 @@ def DataFrame(*args, **kwargs):
 
 def Series(*args, **kwargs):
     return pd.Series(*args, **kwargs)  # Keeping Series as a normal pandas object for now
+
+def merge(*args, **kwargs):
+    return Grizzlies(pd.merge(*args, **kwargs))
+
+def merge_ordered(*args, **kwargs):
+    return Grizzlies(pd.merge_ordered(*args, **kwargs))
+
+def concat(*args, **kwargs):
+    return Grizzlies(pd.concat(*args, **kwargs))
+
+def unique(*args, **kwargs):
+    return pd.unique(*args, **kwargs)
+
+def isnull(*args, **kwargs):
+    return pd.isnull(*args, **kwargs)
+
+def notnull(*args, **kwargs):
+    return pd.notnull(*args, **kwargs)
+
+def isna(*args, **kwargs):
+    return pd.isna(*args, **kwargs)
+
+def notna(*args, **kwargs):
+    return pd.notna(*args, **kwargs)
+
+def to_numeric(*args, **kwargs):
+    return pd.to_numeric(*args, **kwargs)
+
+def to_datetime(*args, **kwargs):
+    return pd.to_datetime(*args, **kwargs)
+
+def to_timedelta(*args, **kwargs):
+    return pd.to_timedelta(*args, **kwargs)
+
+def date_range(*args, **kwargs):
+    return pd.date_range(*args, **kwargs)
