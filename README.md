@@ -48,6 +48,12 @@ python -m memory_profiler benchmarks/{filename}
 For example
 ```bash
 python -m memory_profiler benchmarks/test_yelp.py
+
+```
+
+For tpc-h mention the data path as a parameter
+```
+python tpc_h_benchmark.py --data_set data
 ```
 
 ### Running Tests
