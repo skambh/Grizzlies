@@ -8,6 +8,9 @@ benchmark_results = []
 
 def load_and_prepare_dataset(path: str, row_scaling_factor: int = 1, col_scaling_factor: int = 1):
     df = pd.read_csv(path)
+    df.dropna(inplace=True)
+    print(len(df))
+    # df_grizzlies = Grizzlies.read_csv(path)
 
     # Row scaling: duplicate rows
     if row_scaling_factor > 1:
@@ -21,7 +24,7 @@ def load_and_prepare_dataset(path: str, row_scaling_factor: int = 1, col_scaling
             new_cols.columns = [f"{col}_copy{i}" for col in original_columns]
             df = pd.concat([df, new_cols], axis=1)
 
-    return df, Grizzlies(df, create_scheme="sliding", drop_scheme='lru', treshhold=5, xval=20)
+    return df, Grizzlies(df, create_scheme="sliding", drop_scheme='lru', treshhold=5, xval=20, index_type='ordered')
 
 
 def benchmark_column_access(df_pandas, df_grizzlies):
@@ -45,8 +48,8 @@ def benchmark_column_access(df_pandas, df_grizzlies):
 def benchmark_row_lookup(df_pandas, df_grizzlies):
     lookup_id = df_pandas['ID'].iloc[50000]
 
-    resp, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['Rating'] == 3], desc="Pandas Row Lookup")
-    resg, gt, gm = repeat_benchmark(lambda: df_grizzlies.evalfunc('Rating', operator.eq, 3), desc="Grizzlies Row Lookup")
+    resp, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['ID'] == 23000], desc="Pandas Row Lookup")
+    resg, gt, gm = repeat_benchmark(lambda: df_grizzlies.evalfunc('ID', operator.eq, 23000), desc="Grizzlies Row Lookup")
     print(f"[Row Lookup] Pandas: {pt:.6f}s, {pm:.4f} MiB | Grizzlies: {gt:.6f}s, {gm:.4f} MiB")
     # print(resp)
     # print(resg)
@@ -195,7 +198,7 @@ def benchmark_value_counts(df_pandas, df_grizzlies):
 
 def main():
     dataset_path = "tests/data/yelp_database.csv"
-    row_scaling_factor = 5
+    row_scaling_factor = 100
     col_scaling_factor = 2
 
     df_pandas, df_grizzlies = load_and_prepare_dataset(dataset_path, row_scaling_factor, col_scaling_factor)
