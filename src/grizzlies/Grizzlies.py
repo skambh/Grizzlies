@@ -162,8 +162,9 @@ class Grizzlies:
     def _create_index_hash(self, key):
         """Create a hash index when a column is accessed frequently"""
         self._hash_indices[key] = defaultdict(list)
-        for idx, value in self._df[key].items():
-          self._hash_indices[key][value].append(idx)
+        if key is not None:
+            for idx, value in self._df[key].items():
+                self._hash_indices[key][value].append(idx)
         # self._hash_indices[key] = {value: idx for idx, value in self._df[key].items()}
         # print(f"------Hash index created for column: {key}------")
         # print(self._hash_indices[key])

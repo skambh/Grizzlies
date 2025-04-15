@@ -32,4 +32,4 @@ def export_benchmark_results(benchmark_results, filename="benchmark_results.csv"
         writer.writerow(["Operation", "Library", "Avg Time (s)", "Avg Memory (MiB)"])
         for row in benchmark_results:
             writer.writerow(row)
-    print(f"\nResults exported to {filename}")
+    print(f"\nResults exported to {filename}") 
