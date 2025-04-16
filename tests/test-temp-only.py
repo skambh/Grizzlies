@@ -59,13 +59,17 @@ def test_basic_lru():
     print(df._hash_indices)
 
 def test_real_basic():
-    data = {'ID': [1, 2, 3, 4], 'Value': [10, 20, 30, 40], 'Category': ['A', 'C', 'B', 'D'], 'lolol':[32, 44, 22, 33], 'hhe':['d','w','ee','w']}
-    df = Grizzlies(data, create_scheme="basic", index_type='ordered')
-    for i in range(20):
-        print(df.evalfunc('Category',operator.gt,'A'))
+    data = {'ID': [1, 2, 3, 4], 'Value': [10, 20, 30, 40], 'Category': ['A', 'A', 'B', 'D'], 'lolol':[32, 44, 22, 33], 'hhe':['d','w','ee','w']}
+    df = Grizzlies(data, create_scheme="sliding", method='pandas')
+    for i in range(10):
+        df.evalfunc('Category',operator.eq,'A')
+    for i in range(10):
+        df.evalfunc('hhe',operator.eq,'w')
+    for i in range(10):
+        df.evalfunc('lolol',operator.ge,90)
         # print(df[df['Category']=='A'])
         # print(df.query("Category == 'A'"))
-    print(df.evalfunc('Category',operator.eq,'A'))
+    df.evalfunc('Category',operator.eq,'A')
 
 
     
