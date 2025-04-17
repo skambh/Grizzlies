@@ -32,7 +32,7 @@ class Grizzlies:
         else:
             self._hash_indices = set()
             self._max_indices = 2
-            self._create_index = self._create_pandas_index
+            self._create_index = self._create_index_pandas
             object.__setattr__(self, "evalfunc", self.evalfunc_pandas)
             self._drop_index = self._drop_index_pandas
 
@@ -97,7 +97,7 @@ class Grizzlies:
         self._hash_indices.remove(min_key)
 
 
-    def _create_pandas_index(self, key):
+    def _create_index_pandas(self, key):
         print("creating a pandas index")
         print(key)
         print(self._df.index)
