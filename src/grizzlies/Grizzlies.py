@@ -23,7 +23,6 @@ class Grizzlies:
             self._hash_indices = {}
             self._max_indices = int(windowsize/threshold) # this is a heuristic, can use a diff way that is dynamic?
             self._drop_index = self._drop_index_lru
-            self._num_existing_index = self._num_existing_index_middle
             if index_type.lower() == 'ordered' or index_type.lower() == 'sorted':
                 self._create_index = self._create_index_ordered  
                 object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
@@ -31,7 +30,6 @@ class Grizzlies:
                 self._create_index = self._create_index_hash 
                 object.__setattr__(self, "evalfunc", self.evalfunc_hash)  
         else:
-            self._num_existing_index = self._num_existing_index_pandas
             self._hash_indices = set()
             self._max_indices = 2
             self._create_index = self._create_pandas_index
@@ -142,12 +140,6 @@ class Grizzlies:
         # print(min_key)
         del self._hash_indices[min_key]
 
-    def _num_existing_index_middle(self):
-        return len(self._hash_indices.keys())
-    
-    def _num_existing_index_pandas(self):
-        return len(self._hash_indices)
-
     def _increment_access_count_sliding(self, key):
         """Increase access count for the column for sliding scheme, updates lru"""
         # update lru - might be able to remove
@@ -164,7 +156,7 @@ class Grizzlies:
                 if (count >= self._threshold) and (key not in self._hash_indices):
                     # print(f"we need ta create one on {key}")
                     # print("here")
-                    if self._num_existing_index() >= self._max_indices:
+                    if len(self._hash_indices) >= self._max_indices:
                         # print("gotsta drop")
                         self._drop_index(counts)
                     self._create_index(key)
@@ -192,7 +184,7 @@ class Grizzlies:
         # print(f"------at {self._access_counts[key]} accesses------")
         if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
             self._create_index(key)
-        if self._everyxth % self._xval == 0 and self._num_existing_index() >= self._max_indices:
+        if self._everyxth % self._xval == 0 and len(self._hash_indices) >= self._max_indices:
             print("ya boi boutta drop based on lru")
             self._drop_index(counts=None)
 
