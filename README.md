@@ -71,7 +71,9 @@ You can then run the TPC-H benchmarks by running the following from the project 
 python tests/tpc_h_benchmark.py --data_set **path_to_folder_with_data**
 ```
 
-When running the benchmark, you can configure the script to run using Grizzlies or Pandas, by configuring the test_mode variable on line 23
+When running the benchmark, you can configure the script to run using Grizzlies or Pandas, by configuring the test_mode variable on line 23.
+
+The queries in the tpc-h benchmarks don't make enough queries to meet the threshold Grizzlies requires to auto create an index. To account for this, you can run the benchmark 5-6 times, which will cause Grizzlies to build persistent statistics across runs. After doing this for a few times, Grizzlies will then properly create the index on a later run.
 
 ### Running Tests
 
