@@ -316,9 +316,13 @@ class Grizzlies:
 
     def __setitem__(self, key, value):
         """Allow setting values like df['col'] = data."""
-        # print("UPDATING SMTH")
+        self._df[key] = value 
         self._increment_access_count(key)
-        self._df[key] = value
+        self._recreate_index_if_needed(key)
+    
+    def _recreate_index_if_needed(self, key):
+      if key in self._hash_indices:
+        self._create_index(key)
 
 #################################################################################################################
 #                                    do not edit overloaded functions below!                                    #
