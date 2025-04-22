@@ -71,6 +71,8 @@ You can then run the TPC-H benchmarks by running the following from the project 
 python tests/tpc_h_benchmark.py --data_set **path_to_folder_with_data**
 ```
 
+When running the benchmark, you can configure the script to run using Grizzlies or Pandas, by configuring the test_mode variable on line 23
+
 ### Running Tests
 
 #### Run all tests
