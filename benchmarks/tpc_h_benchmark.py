@@ -5,6 +5,7 @@ import json
 import time
 from typing import Callable, List, Dict
 # from memory_profiler import profile
+import operator
 
 import pandas as pd
 from grizzlies import Grizzlies
@@ -12,26 +13,34 @@ from grizzlies import Grizzlies
 import functools
 import os
 import pandas as pd
+from enum import Enum
 
+class TestMode(Enum):
+    PANDAS = 1
+    GRIZZLIES = 2
+
+# test_mode = TestMode.PANDAS
+test_mode = TestMode.GRIZZLIES
 
 def read_tbl(file_path: str, columns: list) -> pd.DataFrame:
-    return Grizzlies(pd.read_csv(
-        file_path,
-        sep="|",
-        header=None,
-        names=columns,
-        engine="python",
-        skipfooter=1
-    ), create_scheme="basic", drop_scheme="lru", index_type='hash')
-    return pd.read_csv(
-            file_path,
-            sep="|",
-            header=None,
-            names=columns,
-            engine="python",
-            skipfooter=1
-        )
-
+    if test_mode == TestMode.PANDAS:
+      return pd.read_csv(
+          file_path,
+          sep="|",
+          header=None,
+          names=columns,
+          engine="python",
+          skipfooter=1
+      )
+    elif test_mode == TestMode.GRIZZLIES:
+      return Grizzlies(pd.read_csv(
+          file_path,
+          sep="|",
+          header=None,
+          names=columns,
+          engine="python",
+          skipfooter=1
+      ), create_scheme="sliding", drop_scheme="lru", index_type='ordered')
 
 @functools.lru_cache
 def load_lineitem(data_folder: str) -> pd.DataFrame:
@@ -179,15 +188,19 @@ def q01(lineitem: pd.DataFrame):
     )
     # skip sort, Mars groupby enables sort
     # total = total.sort_values(["L_RETURNFLAG", "L_LINESTATUS"])
-    # lineitem.save()
-    print(total)
+    if test_mode == TestMode.GRIZZLIES:
+      lineitem.save()
 
 
 @timethis
 @collect_datasets
 def q02(part, partsupp, supplier, nation, region):
     nation_filtered = nation.loc[:, ["N_NATIONKEY", "N_NAME", "N_REGIONKEY"]]
-    region_filtered = region[(region["R_NAME"] == "EUROPE")]
+    if test_mode == TestMode.PANDAS:
+      region_filtered = region[(region["R_NAME"] == "EUROPE")]
+    elif test_mode == TestMode.GRIZZLIES:
+      region_filtered = region.evalfunc('R_NAME',operator.eq,'EUROPE')
+
     region_filtered = region_filtered.loc[:, ["R_REGIONKEY"]]
     r_n_merged = nation_filtered.merge(
         region_filtered, left_on="N_REGIONKEY", right_on="R_REGIONKEY", how="inner"
@@ -287,15 +300,14 @@ def q02(part, partsupp, supplier, nation, region):
         by=["S_ACCTBAL", "N_NAME", "S_NAME", "P_PARTKEY"],
         ascending=[False, True, True, True],
     )
-    # part.save()
-    # partsupp.save()
-    # supplier.save()
-    # nation.save()
-    # region.save()
+    if test_mode == TestMode.GRIZZLIES:
+      part.save()
+      partsupp.save()
+      supplier.save()
+      nation.save()
+      region.save()
 
-
-    print(total)
-
+    # print(total)
 
 @timethis
 @collect_datasets
@@ -310,9 +322,10 @@ def q03(lineitem, orders, customer):
     customer_filtered = customer.loc[:, ["C_MKTSEGMENT", "C_CUSTKEY"]]
     lsel = lineitem_filtered.L_SHIPDATE > date
     osel = orders_filtered.O_ORDERDATE < date
-    csel = customer_filtered.C_MKTSEGMENT == "HOUSEHOLD"
     flineitem = lineitem_filtered[lsel]
     forders = orders_filtered[osel]
+    
+    csel = customer_filtered.C_MKTSEGMENT == "HOUSEHOLD"
     fcustomer = customer_filtered[csel]
     jn1 = fcustomer.merge(forders, left_on="C_CUSTKEY", right_on="O_CUSTKEY")
     jn2 = jn1.merge(flineitem, left_on="O_ORDERKEY", right_on="L_ORDERKEY")
@@ -325,10 +338,11 @@ def q03(lineitem, orders, customer):
         .sort_values(["TMP"], ascending=False)
     )
     res = total.loc[:, ["L_ORDERKEY", "TMP", "O_ORDERDATE", "O_SHIPPRIORITY"]]
-    # lineitem.save()
-    # orders.save()
-    # customer.save()
-    print(res.head(10))
+    if test_mode == TestMode.GRIZZLIES:
+      lineitem.save()
+      orders.save()
+      customer.save()
+    # print(res.head(10))
 
 
 @timethis
@@ -346,9 +360,10 @@ def q04(lineitem, orders):
         # skip sort when Mars enables sort in groupby
         # .sort_values(["O_ORDERPRIORITY"])
     )
-    # lineitem.save()
-    # orders.save()
-    print(total)
+    if test_mode == TestMode.GRIZZLIES:
+      lineitem.save()
+      orders.save()
+    # print(total)
 
 
 @timethis
@@ -356,10 +371,14 @@ def q04(lineitem, orders):
 def q05(lineitem, orders, customer, nation, region, supplier):
     date1 = pd.Timestamp("1996-01-01")
     date2 = pd.Timestamp("1997-01-01")
-    rsel = region.R_NAME == "ASIA"
     osel = (orders.O_ORDERDATE >= date1) & (orders.O_ORDERDATE < date2)
     forders = orders[osel]
-    fregion = region[rsel]
+
+    if test_mode == TestMode.PANDAS:
+      rsel = region.R_NAME == "ASIA"
+      fregion = region[rsel]
+    elif test_mode == TestMode.GRIZZLIES:
+      fregion = region.evalfunc('R_NAME',operator.eq,'ASIA')
     jn1 = fregion.merge(nation, left_on="R_REGIONKEY", right_on="N_REGIONKEY")
     jn2 = jn1.merge(customer, left_on="N_NATIONKEY", right_on="C_NATIONKEY")
     jn3 = jn2.merge(forders, left_on="C_CUSTKEY", right_on="O_CUSTKEY")
@@ -370,13 +389,14 @@ def q05(lineitem, orders, customer, nation, region, supplier):
     jn5["TMP"] = jn5.L_EXTENDEDPRICE * (1.0 - jn5.L_DISCOUNT)
     gb = jn5.groupby("N_NAME", as_index=False, sort=False)["TMP"].sum()
     total = gb.sort_values("TMP", ascending=False)
-    # lineitem.save()
-    # orders.save()
-    # customer.save()
-    # nation.save()
-    # region.save()
-    # supplier.save()
-    print(total)
+    if test_mode == TestMode.GRIZZLIES:
+      lineitem.save()
+      orders.save()
+      customer.save()
+      nation.save()
+      region.save()
+      supplier.save()
+    # print(total)
 
 
 @timethis
@@ -396,8 +416,9 @@ def q06(lineitem):
     )
     flineitem = lineitem_filtered[sel]
     total = (flineitem.L_EXTENDEDPRICE * flineitem.L_DISCOUNT).sum()
-    # lineitem.save()
-    print(total)
+    if test_mode == TestMode.GRIZZLIES:
+      lineitem.save()
+    # print(total)
 
 
 @timethis
@@ -1178,6 +1199,10 @@ def main():
             storage_options = json.load(fp)
     print(f"Storage options: {storage_options}")
 
+    if test_mode == TestMode.PANDAS:
+      print("=======TESTING WITH PANDAS=======")
+    elif test_mode == TestMode.GRIZZLIES:
+      print("=======TESTING WITH GRIZZLIES=======")
     queries = list(range(1, 7))  # default to all queries
     if args.queries is not None:
         queries = args.queries
