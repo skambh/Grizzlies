@@ -8,7 +8,7 @@ from itertools import chain
 from sortedcontainers import SortedDict
 
 class Grizzlies:
-    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "none", index_type = 'hash', *args, **kwargs,):
+    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "lru", index_type = 'hash', method = 'middle', *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
             self._df = data
         else:
@@ -18,13 +18,24 @@ class Grizzlies:
         
         os.makedirs("stats", exist_ok=True)
         self._stats_path = os.path.join("stats", f"{self._default_name()}.pkl")
-        self._hash_indices = {}
-        if index_type.lower() == 'ordered' or index_type.lower() == 'sorted':
-            self._create_index = self._create_index_ordered  
-            object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
-        else: # else is hash
-            self._create_index = self._create_index_hash 
-            object.__setattr__(self, "evalfunc", self.evalfunc_hash) 
+        self._threshold = threshold 
+        if method == 'middle':
+            self._hash_indices = {}
+            self._max_indices = int(windowsize/threshold) # this is a heuristic, can use a diff way that is dynamic?
+            self._drop_index = self._drop_index_lru
+            if index_type.lower() == 'ordered' or index_type.lower() == 'sorted':
+                self._create_index = self._create_index_ordered  
+                object.__setattr__(self, "evalfunc", self.evalfunc_ordered)
+            else: # else is hash
+                self._create_index = self._create_index_hash 
+                object.__setattr__(self, "evalfunc", self.evalfunc_hash)  
+        else:
+            self._hash_indices = set()
+            self._max_indices = 2
+            self._create_index = self._create_index_pandas
+            object.__setattr__(self, "evalfunc", self.evalfunc_pandas)
+            self._drop_index = self._drop_index_pandas
+
 
         if self._create_scheme == "basic":
             self._access_counts = self._load_stats()
@@ -34,6 +45,7 @@ class Grizzlies:
                 self._lru_ctr = 0
                 self._lru = {}
                 self._increment_access_count = self._increment_access_count_lrubasic
+                    
             else: # none
                 self._increment_access_count = self._increment_access_count_basic
                 
@@ -46,18 +58,16 @@ class Grizzlies:
             self._sliding_window = self._load_stats() # deque(maxlen=window)
             self._lru_ctr = 0
             self._lru = self._set_lru()
-            if drop_scheme == "min":
-                self._drop_index = self._drop_index_min
-            elif drop_scheme == "lru":
-                self._drop_index = self._drop_index_lru
-            else:
-                self._drop_index = self._drop_index_threshold
+            if method =='middle':
+                if drop_scheme == "min":
+                    self._drop_index = self._drop_index_min
+                elif drop_scheme == "lru":
+                    self._drop_index = self._drop_index_lru
+                else:
+                    self._drop_index = self._drop_index_threshold
+
 
         
-            
-        # create_scheme = BASIC - does not ever delete
-        self._threshold = threshold 
-        self._max_indices = int(windowsize/threshold) # this is a heuristic, can use a diff way that is dynamic?
 
     # removed update_threshold, specify when creating instead. too much logic otherwise
 
@@ -73,6 +83,27 @@ class Grizzlies:
             i += 1
         self._lru_ctr = i
         return lru
+
+    def _drop_index_pandas(self, counts):
+        min_key, min_val = None, float('inf')
+        for key in self._hash_indices:
+            if self._lru[key] < min_val:
+                min_val = self._lru[key]
+                min_key = key
+        # print(self._lru)
+        # print(min_key)
+        print(self._df.index)
+        self._df.reset_index(level=min_key, drop=True, inplace=True)
+        self._hash_indices.remove(min_key)
+
+
+    def _create_index_pandas(self, key):
+        print("creating a pandas index")
+        print(key)
+        print(self._df.index)
+        self._hash_indices.add(key)
+        self._df.set_index(key, append=True, drop=False, inplace=True)
+        print(self._df.index)
 
     def _drop_index_threshold(self, counts):
         keys_to_del = []
@@ -108,7 +139,6 @@ class Grizzlies:
                 min_key = key
         # print(min_key)
         del self._hash_indices[min_key]
-        
 
     def _increment_access_count_sliding(self, key):
         """Increase access count for the column for sliding scheme, updates lru"""
@@ -123,10 +153,10 @@ class Grizzlies:
             # print("-------")
             for key, count in counts.items():
                 # print(key, count)
-                if (count >= self._threshold) and (key not in self._hash_indices.keys()):
+                if (count >= self._threshold) and (key not in self._hash_indices):
                     # print(f"we need ta create one on {key}")
                     # print("here")
-                    if len(self._hash_indices.keys()) >= self._max_indices:
+                    if len(self._hash_indices) >= self._max_indices:
                         # print("gotsta drop")
                         self._drop_index(counts)
                     self._create_index(key)
@@ -138,8 +168,8 @@ class Grizzlies:
             self._access_counts[key] = 0
         self._access_counts[key] += 1
         # print(f"------at {self._access_counts[key]} accesses------")
-
         if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
+            
             self._create_index(key)
 
     def _increment_access_count_lrubasic(self, key):
@@ -154,9 +184,9 @@ class Grizzlies:
         # print(f"------at {self._access_counts[key]} accesses------")
         if self._access_counts[key] >= self._threshold and key not in self._hash_indices:
             self._create_index(key)
-        if self._everyxth % self._xval == 0 and len(self._hash_indices.keys()) >= self._max_indices:
-            # print("ya boi boutta drop based on lru")
-            self._drop_index_lru(counts=None)
+        if self._everyxth % self._xval == 0 and len(self._hash_indices) >= self._max_indices:
+            print("ya boi boutta drop based on lru")
+            self._drop_index(counts=None)
 
         
     def _create_index_hash(self, key):
@@ -220,6 +250,13 @@ class Grizzlies:
             return dict(Counter(self._sliding_window))
 
         
+    def evalfunc_pandas(self, colname, op, val):
+        self._increment_access_count(colname)
+        if colname in self._hash_indices and op == operator.eq:
+            print("using the fast way")
+            return self._df.xs(val, level=colname)
+        return self._df[op(self._df[colname], val)]
+
     def evalfunc_ordered(self, colname, op, val):
         self._increment_access_count(colname)
         if colname in self._hash_indices:        
@@ -279,9 +316,13 @@ class Grizzlies:
 
     def __setitem__(self, key, value):
         """Allow setting values like df['col'] = data."""
-        # print("UPDATING SMTH")
+        self._df[key] = value 
         self._increment_access_count(key)
-        self._df[key] = value
+        self._recreate_index_if_needed(key)
+    
+    def _recreate_index_if_needed(self, key):
+      if key in self._hash_indices:
+        self._create_index(key)
 
 #################################################################################################################
 #                                    do not edit overloaded functions below!                                    #

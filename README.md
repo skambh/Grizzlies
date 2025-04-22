@@ -2,7 +2,6 @@
 
 ![Tests](https://github.com/skambh/Grizzlies/actions/workflows/run_tests.yml/badge.svg)
 
-
 ## Team Members
 
 - Kiran Bodipati
@@ -40,21 +39,41 @@
    ```
 
 5. Benchmarking
+
 #### Run Benchmarking
+
 Remember to run using the memory profiler command:
+
 ```
 python -m memory_profiler benchmarks/{filename}
 ```
+
 For example
+
 ```bash
 python -m memory_profiler benchmarks/test_yelp.py
 
 ```
 
-For tpc-h mention the data path as a parameter
+### TPC-H
+
+#### Downloading the Dataset
+
+To run the TPC-H benchmarks you will first need to download the TPC-H dataset from this [Kaggle repo](https://www.kaggle.com/datasets/davidalexander01/tpc-h-dataset/data)
+
+Download all 8 of the .tbl files (can download as a zip), and put the files into some folder.
+
+#### Run the benchmark
+
+You can then run the TPC-H benchmarks by running the following from the project root
+
 ```
-python tpc_h_benchmark.py --data_set data
+python tests/tpc_h_benchmark.py --data_set **path_to_folder_with_data**
 ```
+
+When running the benchmark, you can configure the script to run using Grizzlies or Pandas, by configuring the test_mode variable on line 23.
+
+The queries in the tpc-h benchmarks don't make enough queries to meet the threshold Grizzlies requires to auto create an index. To account for this, you can run the benchmark 5-6 times, which will cause Grizzlies to build persistent statistics across runs. After doing this for a few times, Grizzlies will then properly create the index on a later run.
 
 ### Running Tests
 
@@ -85,5 +104,3 @@ pytest -k (keyword)
 
 # ex - pytest -k "na"
 ```
-
-
