@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
-from grizzlies import Grizzlies
+from grizzlies import Grizzlies, read_csv
+import sys
 import operator
 from benchmarks.utils.utils import benchmark_function, repeat_benchmark, export_benchmark_results
 
@@ -8,13 +9,17 @@ benchmark_results = []
 
 def load_and_prepare_dataset(path: str, row_scaling_factor: int = 1, col_scaling_factor: int = 1):
     df = pd.read_csv(path)
+    df.drop(columns=['OLF'], inplace=True)
     df.dropna(inplace=True)
     print(len(df))
-    # df_grizzlies = Grizzlies.read_csv(path)
+    df2=df.__deepcopy__()
+    print(df.head())
+    # df_grizzlies = read_csv(path)
 
     # Row scaling: duplicate rows
     if row_scaling_factor > 1:
         df = pd.concat([df] * row_scaling_factor, ignore_index=True)
+        df2 = pd.concat([df2] * row_scaling_factor, ignore_index=True)
 
     # Column scaling: duplicate columns with renamed headers
     if col_scaling_factor > 1:
@@ -23,22 +28,22 @@ def load_and_prepare_dataset(path: str, row_scaling_factor: int = 1, col_scaling
             new_cols = df[original_columns].copy()
             new_cols.columns = [f"{col}_copy{i}" for col in original_columns]
             df = pd.concat([df, new_cols], axis=1)
+            df2 = pd.concat([df2, new_cols], axis=1)
 
-    return df, Grizzlies(df, create_scheme="sliding", drop_scheme='lru', treshhold=5, xval=20, index_type='ordered')
+    return df, Grizzlies(df2, create_scheme="sliding", drop_scheme='lru', treshhold=5, xval=10, index_type='hash')
 
 
 def benchmark_column_access(df_pandas, df_grizzlies):
     def pandas_func():
-        for _ in range(10):
+        for _ in range(5):
             _ = df_pandas[['ID', 'Rating', 'Organization']]
 
     def grizzlies_func():
-        for _ in range(10):
-            _ = df_grizzlies['ID']
-            __ = df_grizzlies['Rating']
-            ___ = df_grizzlies['Organization']
+        for _ in range(5):
+            _ = df_grizzlies[['ID', 'Rating', 'Organization']]
 
     _, pt, pm = repeat_benchmark(pandas_func, desc="Pandas Column Access")
+    repeat_benchmark(grizzlies_func, desc="Grizzlies Column Access", n=2)
     _, gt, gm = repeat_benchmark(grizzlies_func, desc="Grizzlies Column Access")
     print(f"[Column Access] Pandas: {pt:.6f}s, {pm:.4f} MiB | Grizzlies: {gt:.6f}s, {gm:.4f} MiB")
     benchmark_results.append(["Column Access", "Pandas", pt, pm])
@@ -48,11 +53,12 @@ def benchmark_column_access(df_pandas, df_grizzlies):
 def benchmark_row_lookup(df_pandas, df_grizzlies):
     lookup_id = df_pandas['ID'].iloc[50000]
 
-    resp, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['ID'] == 23000], desc="Pandas Row Lookup")
-    resg, gt, gm = repeat_benchmark(lambda: df_grizzlies.evalfunc('ID', operator.eq, 23000), desc="Grizzlies Row Lookup")
+    resp, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['Organization'] == "Zaxby's Chicken Fingers & Buffalo Wings"], desc="Pandas Row Lookup")
+    resg, gt, gm = repeat_benchmark(lambda: df_grizzlies.evalfunc('Organization', operator.eq, "Zaxby's Chicken Fingers & Buffalo Wings"), desc="Grizzlies Row Lookup")
     print(f"[Row Lookup] Pandas: {pt:.6f}s, {pm:.4f} MiB | Grizzlies: {gt:.6f}s, {gm:.4f} MiB")
-    # print(resp)
-    # print(resg)
+    print(resp)
+    print(resg)
+    assert resp.equals(resg), "Row lookup results do not match!"
     benchmark_results.append(["Row Lookup", "Pandas", pt, pm])
     benchmark_results.append(["Row Lookup", "Grizzlies", gt, gm])
 
@@ -85,8 +91,8 @@ def benchmark_groupby(df_pandas, df_grizzlies):
 
 
 def benchmark_filter(df_pandas, df_grizzlies):
-    _, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['Rating'] > 3], desc="Pandas Filter")
-    _, gt, gm = repeat_benchmark(lambda: df_grizzlies[df_grizzlies['Rating'] > 3], desc="Grizzlies Filter")
+    _, pt, pm = repeat_benchmark(lambda: df_pandas[df_pandas['ID'] < 30], desc="Pandas Filter")
+    _, gt, gm = repeat_benchmark(lambda: df_grizzlies.evalfunc("ID", operator.lt, 30), desc="Grizzlies Filter")
     print(f"[Filter] Pandas: {pt:.6f}s, {pm:.4f} MiB | Grizzlies: {gt:.6f}s, {gm:.4f} MiB")
     benchmark_results.append(["Filter", "Pandas", pt, pm])
     benchmark_results.append(["Filter", "Grizzlies", gt, gm])
@@ -198,35 +204,40 @@ def benchmark_value_counts(df_pandas, df_grizzlies):
 
 def main():
     dataset_path = "tests/data/yelp_database.csv"
-    row_scaling_factor = 100
-    col_scaling_factor = 2
+    row_scaling_factor = 2
+    col_scaling_factor = 3
 
     df_pandas, df_grizzlies = load_and_prepare_dataset(dataset_path, row_scaling_factor, col_scaling_factor)
+    print(f"{df_pandas.shape=} {df_grizzlies.shape=}")
+    pandas_size=sys.getsizeof(df_pandas)/1e+6
+    print(f"{pandas_size=}")
     print("Dataset loaded and scaled. Starting benchmarks...\n")
 
     # Existing benchmarks
     benchmark_column_access(df_pandas, df_grizzlies)
     benchmark_row_lookup(df_pandas, df_grizzlies)
-    benchmark_sort(df_pandas, df_grizzlies)
-    benchmark_merge(df_pandas, df_grizzlies)
-    benchmark_groupby(df_pandas, df_grizzlies)
     benchmark_filter(df_pandas, df_grizzlies)
-    benchmark_apply(df_pandas, df_grizzlies)
-    benchmark_drop_column(df_pandas, df_grizzlies)
-    benchmark_fillna(df_pandas, df_grizzlies)
+    # benchmark_sort(df_pandas, df_grizzlies)
+    # # benchmark_merge(df_pandas, df_grizzlies)
+    # benchmark_groupby(df_pandas, df_grizzlies)
+    # benchmark_filter(df_pandas, df_grizzlies)
+    # benchmark_apply(df_pandas, df_grizzlies)
+    # benchmark_drop_column(df_pandas, df_grizzlies)
+    # benchmark_fillna(df_pandas, df_grizzlies)
 
-    benchmark_numpy_vector_math(df_pandas, df_grizzlies)
-    benchmark_numpy_stats(df_pandas, df_grizzlies)
-    benchmark_numpy_masking(df_pandas, df_grizzlies)
-    benchmark_numpy_custom_func(df_pandas, df_grizzlies)
-    benchmark_to_numpy(df_pandas, df_grizzlies)
+    # benchmark_numpy_vector_math(df_pandas, df_grizzlies)
+    # benchmark_numpy_stats(df_pandas, df_grizzlies)
+    # benchmark_numpy_masking(df_pandas, df_grizzlies)
+    # benchmark_numpy_custom_func(df_pandas, df_grizzlies)
+    # benchmark_to_numpy(df_pandas, df_grizzlies)
 
-    benchmark_head(df_pandas, df_grizzlies)
-    benchmark_describe(df_pandas, df_grizzlies)
-    benchmark_nunique(df_pandas, df_grizzlies)
-    benchmark_value_counts(df_pandas, df_grizzlies)
+    # benchmark_head(df_pandas, df_grizzlies)
+    # benchmark_describe(df_pandas, df_grizzlies)
+    # benchmark_nunique(df_pandas, df_grizzlies)
+    # benchmark_value_counts(df_pandas, df_grizzlies)
     # Save benchmark results to CSV 
     export_benchmark_results(benchmark_results, filename="benchmarks/results/yelp_benchmark_results.csv")
+    
 
     # Optional save
     # df_grizzlies.save()

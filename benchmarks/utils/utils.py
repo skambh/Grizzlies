@@ -9,10 +9,11 @@ import csv
 # @profile
 def benchmark_function(func, *args, **kwargs):
     
-    mem_usage = memory_usage((func, args, kwargs), max_usage=True)
+    
     start_time = time.perf_counter()
     result = func(*args, **kwargs)
     end_time = time.perf_counter()
+    mem_usage = memory_usage((func, args, kwargs), max_usage=True)
     return result, end_time - start_time, mem_usage
 
 def repeat_benchmark(func, n=10, desc="benchmarking"):

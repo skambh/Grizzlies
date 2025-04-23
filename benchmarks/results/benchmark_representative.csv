@@ -1,0 +1,7 @@
+test_case,column,value,index,pandas_time,pandas_memory,grizzlies_time,grizzlies_memory
+"String, Long, Infrequent",Organization,Zaxby's Chicken Fingers & Buffalo Wings,"['Organization', 'Rating', 'ID']",0.31734989999094976,2609.4484375,0.0037407500203698874,2607.2953125
+"String, Categorical, 50",State,AL,"['State', 'Rating', 'ID']",0.33809430999681356,2918.22265625,0.01769754000706598,2630.833984375
+"Integer, ID",ID,30428,"['Rating', 'Organization', 'ID']",0.008795580011792481,3071.125,0.000392469996586442,3064.712890625
+"Integer, Categorical, 5",Rating,4,"['Rating', 'Organization', 'ID']",0.17449854998849332,3859.294921875,0.2123547900118865,3920.759375
+"Float, Short Range",User_liking,8.29,"['User_liking', 'Organization', 'State']",0.09702204000204802,2510.009765625,0.006804559961892664,2503.585546875
+"Float, Long Range",Avg_Visits,227.0,"['Avg_Visits', 'Organization', 'State']",0.007960609986912458,2964.833984375,0.0004311200231313705,2527.969921875
