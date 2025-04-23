@@ -8,7 +8,7 @@ from itertools import chain
 from sortedcontainers import SortedDict
 
 class Grizzlies:
-    def __init__(self, data=None, create_scheme = "basic", threshold=5, windowsize=16, xval=10, drop_scheme = "lru", index_type = 'hash', *args, **kwargs,):
+    def __init__(self, data=None, create_scheme = "basic", windowsize=16, threshold=5, xval=10, drop_scheme = "lru", index_type = 'hash', *args, **kwargs,):
         if isinstance(data, pd.DataFrame):
             self._df = data
         else:
