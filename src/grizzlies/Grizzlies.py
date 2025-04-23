@@ -36,9 +36,10 @@ class Grizzlies:
         self._lru_ctr = 0
         self._lru = {}
         self._min = {}
+        self._access_counts = self._load_stats()
 
         if self._create_scheme == "basic":
-            self._access_counts = self._load_stats()
+            
             if drop_scheme == "none":
                 self._increment_access_count = self._increment_access_count_basic
             else:
@@ -119,7 +120,6 @@ class Grizzlies:
         
     def _create_index_hash(self, key):
         """Create a hash index when a column is accessed frequently"""
-        self._access_counts[key] = 0
         self._min[key] = 0
         self._hash_indices[key] = defaultdict(list)
         if key is not None:
