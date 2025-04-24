@@ -94,7 +94,7 @@ Download all 8 of the .tbl files (can download as a zip), and put the files into
 You can then run the TPC-H benchmarks by running the following from the project root
 
 ```
-python tests/tpc_h_benchmark.py --data_set **path_to_folder_with_data**
+python benchmarks/tpc_h_benchmark.py --data_set **path_to_folder_with_data**
 ```
 
 When running the benchmark, you can configure the script to run using Grizzlies or Pandas, by configuring the test_mode variable on line 23.
