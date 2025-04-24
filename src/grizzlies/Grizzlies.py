@@ -129,7 +129,11 @@ class Grizzlies:
     
     def _create_index_ordered(self, key):
         """Create a ordered index when a column is accessed frequently"""
+<<<<<<< HEAD
         # self._access_counts[key] = 0
+=======
+        self._access_counts[key] = 0
+>>>>>>> f9c1e9da96eba1a935a1d9e6155d82a4ffb64bfc
         self._min[key] = 0
         self._hash_indices[key] = SortedDict()
         for idx, value in self._df[key].items():
@@ -282,21 +286,6 @@ class Grizzlies:
     def isin(self, values):
         return self._df.isin(values)
 
-    # @property
-    # def loc(self):
-    #     class LocWrapper:
-    #         def __init__(self, parent, loc_obj):
-    #             self._parent = parent
-    #             self._loc = loc_obj
-
-    #         def __getitem__(self, key):
-    #             result = self._loc[key]
-    #             return Grizzlies(result) if isinstance(result, pd.DataFrame) else result
-
-    #         def __setitem__(self, key, value):
-    #             self._loc[key] = value  # Modify the underlying DataFrame
-
-    #     return LocWrapper(self, self._df.loc)
 
     @property
     def iloc(self):
