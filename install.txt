@@ -13,3 +13,24 @@ Steps for setting up project. These are the same steps in readme.
 To Run TPC-H Benchmarks
 1. python benchmarks/tpc_h_benchmark.py --data_set **path_to_folder_with_.tbl_data**
 
+
+
+To reproduce the results shown in the paper, make sure to download the Yelp Dataset from [Kaggle](https://www.kaggle.com/datasets/abdulmajid115/yelp-dataset-contains-1-million-rows) and place it in ```benchmarks/data``` folder. 
+
+Run the following scripts -
+1. Scalability Results
+``` bash
+python -m memory_profiler benchmarks/benchmark_scaling.py
+```
+
+2. Configuration Tests
+``` bash
+python -m memory_profiler benchmarks/benchmark_hyperparameters.py
+```
+
+3. Data Type Tests
+``` bash
+python -m memory_profiler benchmarks/benchmark_representative.py
+```
+The results are saved to ```benchmarks/results``` folder. 
+
