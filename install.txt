@@ -1,0 +1,15 @@
+Steps for setting up project. These are the same steps in readme.
+
+1. Setup Python Venv and activate
+  python -m venv venv
+  source venv/bin/activate
+
+2. Install dependencies
+  pip install -r requirements.txt
+
+3. Install grizzlies as a package
+  pip install -e .
+
+To Run TPC-H Benchmarks
+1. python benchmarks/tpc_h_benchmark.py --data_set **path_to_folder_with_.tbl_data**
+
