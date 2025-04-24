@@ -55,11 +55,37 @@ python -m memory_profiler benchmarks/test_yelp.py
 
 ```
 
+To reproduce the results shown in the paper, make sure to download the Yelp Dataset from [Kaggle](https://www.kaggle.com/datasets/abdulmajid115/yelp-dataset-contains-1-million-rows) and place it in ```benchmarks/data``` folder. 
+
+Run the following scripts -
+1. Scalability Results
+``` bash
+python -m memory_profiler benchmarks/benchmark_scaling.py
+```
+
+2. Configuration Tests
+``` bash
+python -m memory_profiler benchmarks/benchmark_hyperparameters.py
+```
+
+3. Data Type Tests
+``` bash
+python -m memory_profiler benchmarks/benchmark_representative.py
+```
+The results are saved to ```benchmarks/results``` folder. 
+Please feel free to modify the filename and pass the columns and search values to parameters to test your own files. 
+
+The benchmark datasets used for our analyses include:
+1. [Yelp Dataset](https://www.kaggle.com/datasets/abdulmajid115/yelp-dataset-contains-1-million-rows)
+2. [Yahoo Finance Dataset](https://www.kaggle.com/datasets/eli2022/yahoo-finance-apple-inc-gspc) 
+3. [Top Movies](https://www.kaggle.com/datasets/omkarborikar/top-10000-popular-movies)
+4. [Movie Reviews](https://www.kaggle.com/datasets/parthdande/imdb-dataset-2024-updated?select=IMDb_Dataset_3.csv)
+5. [Pokemon](https://www.kaggle.com/datasets/rzgiza/pokdex-for-all-1025-pokemon-w-text-description)
 ### TPC-H
 
 #### Downloading the Dataset
 
-To run the TPC-H benchmarks you will first need to download the TPC-H dataset from this [Kaggle repo](https://www.kaggle.com/datasets/davidalexander01/tpc-h-dataset/data)
+To run the TPC-H benchmarks you will first need to download the TPC-H dataset from this [Kaggle Link](https://www.kaggle.com/datasets/davidalexander01/tpc-h-dataset/data)
 
 Download all 8 of the .tbl files (can download as a zip), and put the files into some folder.
 
@@ -76,7 +102,7 @@ When running the benchmark, you can configure the script to run using Grizzlies 
 The queries in the tpc-h benchmarks don't make enough queries to meet the threshold Grizzlies requires to auto create an index. To account for this, you can run the benchmark 5-6 times, which will cause Grizzlies to build persistent statistics across runs. After doing this for a few times, Grizzlies will then properly create the index on a later run.
 
 ### Running Tests
-
+Pytests were used to unit test functions written, and ensure correctness against pandas.
 #### Run all tests
 
 ```bash

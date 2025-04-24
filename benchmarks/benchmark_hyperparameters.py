@@ -66,7 +66,7 @@ def main():
         for ds in drop_scheme:
             for it in index_type:
                 print(f"Creating Grizzlies with {cs=}, {ds=}, {it=}")
-                if cs == "basic" and ds != "lru":
+                if cs == "basic" and (ds not in ["lru", "min"]):
                     print("Skipping this combination due to unsupported drop scheme.")
                     continue
                 df_grizzlies = Grizzlies(df_temp, create_scheme=cs, drop_scheme=ds, index_type=it)
